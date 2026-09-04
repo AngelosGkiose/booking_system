@@ -12,4 +12,4 @@ class VenueModel(Base):
     city = Column(String,nullable=False)
     created_at = Column(DateTime(timezone=True),nullable=False,server_default=func.now())
 
-    seats=relationship("SeatsModel",back_populates="venue")
+    seats=relationship("SeatModel",back_populates="venue")
