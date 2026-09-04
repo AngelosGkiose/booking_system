@@ -12,3 +12,5 @@ class UserModel(Base):
     password_hash = Column(String, nullable=False)
     is_active = Column(Boolean,nullable=False, server_default=true())
     created_at = Column(DateTime(timezone=True),nullable=False, server_default=func.now())
+
+

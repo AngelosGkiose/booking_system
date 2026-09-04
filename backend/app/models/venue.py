@@ -1,4 +1,5 @@
 from sqlalchemy import Column, Integer, String, DateTime, func
+from sqlalchemy.orm import relationship
 
 from app.database import Base
 
@@ -10,3 +11,5 @@ class VenueModel(Base):
     address = Column(String,nullable=False)
     city = Column(String,nullable=False)
     created_at = Column(DateTime(timezone=True),nullable=False,server_default=func.now())
+
+    seats=relationship("SeatsModel",back_populates="venue")
