@@ -13,3 +13,4 @@ class VenueModel(Base):
     created_at = Column(DateTime(timezone=True),nullable=False,server_default=func.now())
 
     seats=relationship("SeatModel",back_populates="venue")
+    events=relationship("EventModel",back_populates="venue")
