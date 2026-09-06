@@ -18,3 +18,5 @@ class EventModel(Base):
     venue=relationship("VenueModel",back_populates="events")
 
     event_seats=relationship("EventSeatModel",back_populates="event")
+
+   

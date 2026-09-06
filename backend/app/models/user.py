@@ -1,6 +1,7 @@
 
 
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, true, func
+from sqlalchemy.orm import relationship
 
 from app.database import Base
 
@@ -13,4 +14,4 @@ class UserModel(Base):
     is_active = Column(Boolean,nullable=False, server_default=true())
     created_at = Column(DateTime(timezone=True),nullable=False, server_default=func.now())
 
-
+    reservations = relationship("ReservationModel",back_populates="user")

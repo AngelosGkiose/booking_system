@@ -25,4 +25,4 @@ class EventSeatModel(Base):
 
     event=relationship("EventModel",back_populates="event_seats")
     seat=relationship("SeatModel",back_populates="event_seats")
-
+    reservations=relationship("ReservationModel",back_populates="event_seat")
