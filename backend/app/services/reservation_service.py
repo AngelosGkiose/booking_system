@@ -52,5 +52,24 @@ def confirm_reservation_service(reservation_id,db,current_user):
         db.rollback()
         raise
 
+def cancel_reservation_service(reservation_id,db,current_user):
+    try:
+        reservation=get_reservation_for_update(reservation_id,db,current_user.id)
+        if not reservation:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail="Reservation not found")
+        if  reservation.status !=ReservationStatus.PENDING:
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT,detail="Reservation  not pending")
+        event_seat = get_event_seat_for_update(reservation.event_seat_id,db)
+        if event_seat.status != EventSeatStatus.HELD:
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Event seat is not Held")
+        reservation.status = ReservationStatus.CANCELED
+        event_seat.status=EventSeatStatus.AVAILABLE
+        event_seat.hold_expires_at = None
+        db.commit()
+        db.refresh(reservation)
+        return reservation
+    except Exception :
+        db.rollback()
+        raise
 
 
