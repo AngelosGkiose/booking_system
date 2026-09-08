@@ -10,7 +10,7 @@ from app.models import ReservationModel
 from app.models.eventseat import EventSeatStatus
 from app.models.reservation import ReservationStatus
 from app.repositories.reservation_repository import get_event_seat_for_update, add_reservation, \
-    get_reservation_for_update
+    get_reservation_for_update, get_reservation_by_id_for_update
 
 
 def create_reservation_service(event_seat_id,db,current_user):
@@ -72,4 +72,25 @@ def cancel_reservation_service(reservation_id,db,current_user):
         db.rollback()
         raise
 
+def expire_reservation_service(reservation_id,db):
+    try:
+        reservation=get_reservation_by_id_for_update(reservation_id,db)
+        if not reservation:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail="Reservation not found")
+        if reservation.status !=ReservationStatus.PENDING:
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT,detail="Reservation  not pending")
+        if reservation.expires_at > datetime.now(ZoneInfo("Europe/Athens")):
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT,detail="Reservation is not expired")
+        event_seat = get_event_seat_for_update(reservation.event_seat_id,db)
+        if event_seat.status !=EventSeatStatus.HELD:
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT,detail="Event seat is not Held")
+        reservation.status = ReservationStatus.EXPIRED
+        event_seat.status=EventSeatStatus.AVAILABLE
+        event_seat.hold_expires_at = None
+        db.commit()
+        db.refresh(reservation)
+        return reservation
+    except Exception :
+        db.rollback()
+        raise
 

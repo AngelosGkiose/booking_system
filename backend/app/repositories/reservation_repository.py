@@ -11,3 +11,6 @@ def add_reservation(reservation,db):
 
 def get_reservation_for_update(reservation_id,db,user_id,):
     return db.query(ReservationModel).filter(ReservationModel.id == reservation_id,ReservationModel.user_id==user_id).with_for_update().first()
+
+def get_reservation_by_id_for_update(reservation_id,db):
+    return db.query(ReservationModel).filter(ReservationModel.id == reservation_id).with_for_update().first()
