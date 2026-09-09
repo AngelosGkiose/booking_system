@@ -5,7 +5,7 @@ from zoneinfo import ZoneInfo
 from fastapi import HTTPException
 from starlette import status
 
-
+from app.queue import reservation_queue
 from app.models import ReservationModel
 from app.models.eventseat import EventSeatStatus
 from app.models.reservation import ReservationStatus
@@ -26,6 +26,8 @@ def create_reservation_service(event_seat_id,db,current_user):
         event_seat.hold_expires_at=datetime.now(ZoneInfo("Europe/Athens")) + timedelta(minutes=10)
         db.commit()
         db.refresh(reservation)
+        from app.jobs.reservation_jobs import expire_reservation_job
+        reservation_queue.enqueue_at(reservation.expires_at, expire_reservation_job, reservation.id)
         return reservation
     except Exception :
         db.rollback()
