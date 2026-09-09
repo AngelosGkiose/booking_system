@@ -1,16 +1,16 @@
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
-import pytest
+
 from fastapi import HTTPException
 from starlette import status
 
-from app.database import SessionLocal
+
 from app.models import ReservationModel
 from app.models.eventseat import EventSeatStatus
 from app.models.reservation import ReservationStatus
 from app.repositories.reservation_repository import get_event_seat_for_update, add_reservation, \
-    get_reservation_for_update, get_reservation_by_id_for_update
+    get_reservation_for_update, get_reservation_by_id_for_update, get_expired_pending_reservations_for_update
 
 
 def create_reservation_service(event_seat_id,db,current_user):
@@ -94,3 +94,22 @@ def expire_reservation_service(reservation_id,db):
         db.rollback()
         raise
 
+def expire_pending_reservations_service(db):
+    expired_reservations=[]
+    try:
+        reservations=get_expired_pending_reservations_for_update(now=datetime.now(ZoneInfo("Europe/Athens")),db=db)
+        if not reservations:
+            return []
+        for reservation in reservations:
+            event_seat = get_event_seat_for_update(reservation.event_seat_id,db)
+            if event_seat.status !=EventSeatStatus.HELD:
+                continue
+            reservation.status = ReservationStatus.EXPIRED
+            event_seat.status = EventSeatStatus.AVAILABLE
+            event_seat.hold_expires_at = None
+            expired_reservations.append(reservation)
+        db.commit()
+        return expired_reservations
+    except Exception :
+        db.rollback()
+        raise

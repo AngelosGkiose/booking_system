@@ -10,7 +10,7 @@ from app.database import SessionLocal
 from app.models import ReservationModel, EventSeatModel, EventModel, SeatModel, VenueModel, UserModel
 from app.models.eventseat import EventSeatStatus
 from app.models.reservation import ReservationStatus
-from app.services.reservation_service import expire_reservation_service, cancel_reservation_service
+from app.services.reservation_service import expire_reservation_service
 
 results=[]
 def test_expire_reservation_expires_pending_reservation():
@@ -215,7 +215,7 @@ def test_expire_reservation_rolls_back_on_failure(monkeypatch):
         def fake_commit():
             raise Exception("Commit failed")
         monkeypatch.setattr(db, "commit", fake_commit)
-        with pytest.raises(Exception) :
+        with pytest.raises(Exception,match="Commit failed"):
             expire_reservation_service(reservation.id, db)
         check_db=SessionLocal()
         try:
@@ -263,8 +263,8 @@ def test_expire_reservation_prevents_concurrent_expiration():
         reservation_id=reservation.id
         db.commit()
         barrier=Barrier(2)
-        thread1=Thread(target=cancel,args=(reservation.id,barrier))
-        thread2=Thread(target=cancel,args=(reservation.id,barrier))
+        thread1=Thread(target=expire,args=(reservation.id,barrier))
+        thread2=Thread(target=expire,args=(reservation.id,barrier))
         thread1.start()
         thread2.start()
         thread1.join()
@@ -284,7 +284,7 @@ def test_expire_reservation_prevents_concurrent_expiration():
         db.rollback()
         db.close()
 
-def cancel(reservation_id,barrier):
+def expire(reservation_id,barrier):
     check_db = SessionLocal()
     try:
         barrier.wait()
