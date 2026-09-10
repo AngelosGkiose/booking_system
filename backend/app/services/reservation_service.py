@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
-
+from rq import Retry
 from fastapi import HTTPException
 from starlette import status
 from app.jobs.reservation_jobs import expire_reservation_job
@@ -27,7 +27,7 @@ def create_reservation_service(event_seat_id,db,current_user):
         db.commit()
         try:
             db.refresh(reservation)
-            reservation_queue.enqueue_at(reservation.expires_at, expire_reservation_job, reservation.id)
+            reservation_queue.enqueue_at(reservation.expires_at, expire_reservation_job, reservation.id,retry=Retry(max=3,interval=[10,30,60]))
         except Exception as e:
             print(e)
         return reservation
