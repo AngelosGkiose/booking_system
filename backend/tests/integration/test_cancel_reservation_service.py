@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime
 from threading import Barrier, Thread
 from zoneinfo import ZoneInfo
 
@@ -41,7 +41,6 @@ def test_cancel_reservation_cancels_pending_reservation():
         cancel_reservation_service(reservation.id,db,user)
         assert reservation.status==ReservationStatus.CANCELED
         assert event_seat1.status==EventSeatStatus.AVAILABLE
-        assert event_seat1.hold_expires_at  is  None
     finally:
         db.rollback()
         db.close()
@@ -201,7 +200,7 @@ def test_cancel_reservation_rolls_back_on_failure(monkeypatch):
         ))
         db.add(event1)
         db.flush()
-        event_seat1 = EventSeatModel(seat_id=seat1.id, event_id=event1.id, price=10.0,status=EventSeatStatus.HELD,hold_expires_at=datetime.now(ZoneInfo("Europe/Athens"))+timedelta(minutes=10))
+        event_seat1 = EventSeatModel(seat_id=seat1.id, event_id=event1.id, price=10.0,status=EventSeatStatus.HELD)
         db.add(event_seat1)
         db.flush()
         db.add(event_seat1)
@@ -223,7 +222,6 @@ def test_cancel_reservation_rolls_back_on_failure(monkeypatch):
             saved_event_seat1=check_db.query(EventSeatModel).filter(EventSeatModel.id==event_seat1_id).first()
             assert reservation.status==ReservationStatus.PENDING
             assert saved_event_seat1.status==EventSeatStatus.HELD
-            assert saved_event_seat1.hold_expires_at is not None
         finally:
             check_db.close()
     finally:
@@ -276,7 +274,6 @@ def test_cancel_reservation_prevents_concurrent_cancellation():
             saved_event_seat1=check_db.query(EventSeatModel).filter(EventSeatModel.id==event_seat1_id).first()
             assert reservation.status == ReservationStatus.CANCELED
             assert saved_event_seat1.status==EventSeatStatus.AVAILABLE
-            assert saved_event_seat1.hold_expires_at is None
         finally:
             check_db.close()
     finally:

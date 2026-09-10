@@ -23,7 +23,6 @@ def create_reservation_service(event_seat_id,db,current_user):
         reservation=ReservationModel(user_id=current_user.id,event_seat_id=event_seat.id)
         add_reservation(reservation,db)
         event_seat.status=EventSeatStatus.HELD
-        event_seat.hold_expires_at=datetime.now(ZoneInfo("Europe/Athens")) + timedelta(minutes=10)
         db.commit()
     except Exception:
         db.rollback()
@@ -71,7 +70,6 @@ def cancel_reservation_service(reservation_id,db,current_user):
             raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Event seat is not Held")
         reservation.status = ReservationStatus.CANCELED
         event_seat.status=EventSeatStatus.AVAILABLE
-        event_seat.hold_expires_at = None
         db.commit()
         db.refresh(reservation)
         return reservation
@@ -93,7 +91,6 @@ def expire_reservation_service(reservation_id,db):
             raise HTTPException(status_code=status.HTTP_409_CONFLICT,detail="Event seat is not Held")
         reservation.status = ReservationStatus.EXPIRED
         event_seat.status=EventSeatStatus.AVAILABLE
-        event_seat.hold_expires_at = None
         db.commit()
         db.refresh(reservation)
         return reservation
@@ -113,7 +110,6 @@ def expire_pending_reservations_service(db):
                 continue
             reservation.status = ReservationStatus.EXPIRED
             event_seat.status = EventSeatStatus.AVAILABLE
-            event_seat.hold_expires_at = None
             expired_reservations.append(reservation)
         db.commit()
         return expired_reservations
@@ -135,7 +131,6 @@ def expire_reservation_background_service(reservation_id, db):
             return
         reservation.status = ReservationStatus.EXPIRED
         event_seat.status = EventSeatStatus.AVAILABLE
-        event_seat.hold_expires_at = None
         db.commit()
     except Exception:
         db.rollback()

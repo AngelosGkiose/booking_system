@@ -21,7 +21,7 @@ class EventSeatModel(Base):
     seat_id = Column(Integer, ForeignKey('seats.id'),nullable=False)
     status =Column(SQLEnum(EventSeatStatus, name="event_seat_status"),nullable=False,default=EventSeatStatus.AVAILABLE)
     price = Column(Numeric(10, 2),nullable=False)
-    hold_expires_at = Column(DateTime(timezone=True),nullable=True)
+
 
     event=relationship("EventModel",back_populates="event_seats")
     seat=relationship("SeatModel",back_populates="event_seats")

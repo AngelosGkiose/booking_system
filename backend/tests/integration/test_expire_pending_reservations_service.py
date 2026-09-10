@@ -67,9 +67,6 @@ def test_expire_pending_reservations_expires_all_valid_expired_reservations():
             event_id=event.id,
             price=10.0,
             status=EventSeatStatus.HELD,
-            hold_expires_at=datetime.now(
-                ZoneInfo("Europe/Athens")
-            ) - timedelta(minutes=1)
         )
 
         event_seat2 = EventSeatModel(
@@ -77,9 +74,6 @@ def test_expire_pending_reservations_expires_all_valid_expired_reservations():
             event_id=event.id,
             price=10.0,
             status=EventSeatStatus.HELD,
-            hold_expires_at=datetime.now(
-                ZoneInfo("Europe/Athens")
-            ) - timedelta(minutes=1)
         )
 
         db.add_all([event_seat1, event_seat2])
@@ -116,8 +110,6 @@ def test_expire_pending_reservations_expires_all_valid_expired_reservations():
         assert event_seat1.status == EventSeatStatus.AVAILABLE
         assert event_seat2.status == EventSeatStatus.AVAILABLE
 
-        assert event_seat1.hold_expires_at is None
-        assert event_seat2.hold_expires_at is None
 
     finally:
         db.rollback()
@@ -180,9 +172,6 @@ def test_expire_pending_reservations_returns_empty_when_none_expired():
             event_id=event.id,
             price=10.0,
             status=EventSeatStatus.HELD,
-            hold_expires_at=datetime.now(
-                ZoneInfo("Europe/Athens")
-            ) - timedelta(minutes=1)
         )
 
         event_seat2 = EventSeatModel(
@@ -190,9 +179,6 @@ def test_expire_pending_reservations_returns_empty_when_none_expired():
             event_id=event.id,
             price=10.0,
             status=EventSeatStatus.HELD,
-            hold_expires_at=datetime.now(
-                ZoneInfo("Europe/Athens")
-            ) - timedelta(minutes=1)
         )
 
         db.add_all([event_seat1, event_seat2])
@@ -283,9 +269,6 @@ def test_expire_pending_reservations_skips_event_seat_not_held():
             event_id=event.id,
             price=10.0,
             status=EventSeatStatus.HELD,
-            hold_expires_at=datetime.now(
-                ZoneInfo("Europe/Athens")
-            ) - timedelta(minutes=1)
         )
 
         event_seat2 = EventSeatModel(
@@ -293,9 +276,6 @@ def test_expire_pending_reservations_skips_event_seat_not_held():
             event_id=event.id,
             price=10.0,
             status=EventSeatStatus.RESERVED,
-            hold_expires_at=datetime.now(
-                ZoneInfo("Europe/Athens")
-            ) - timedelta(minutes=1)
         )
 
         db.add_all([event_seat1, event_seat2])
@@ -331,8 +311,7 @@ def test_expire_pending_reservations_skips_event_seat_not_held():
         assert event_seat1.status == EventSeatStatus.AVAILABLE
         assert event_seat2.status == EventSeatStatus.RESERVED
 
-        assert event_seat1.hold_expires_at is None
-        assert event_seat2.hold_expires_at is not None
+
     finally:
         db.rollback()
         db.close()
@@ -394,9 +373,6 @@ def test_expire_pending_reservations_ignores_non_pending_reservations():
             event_id=event.id,
             price=10.0,
             status=EventSeatStatus.HELD,
-            hold_expires_at=datetime.now(
-                ZoneInfo("Europe/Athens")
-            ) - timedelta(minutes=1)
         )
 
         event_seat2 = EventSeatModel(
@@ -404,9 +380,6 @@ def test_expire_pending_reservations_ignores_non_pending_reservations():
             event_id=event.id,
             price=10.0,
             status=EventSeatStatus.HELD,
-            hold_expires_at=datetime.now(
-                ZoneInfo("Europe/Athens")
-            ) - timedelta(minutes=1)
         )
 
         db.add_all([event_seat1, event_seat2])
@@ -441,8 +414,6 @@ def test_expire_pending_reservations_ignores_non_pending_reservations():
 
         assert event_seat1.status == EventSeatStatus.HELD
         assert event_seat2.status == EventSeatStatus.HELD
-        assert event_seat1.hold_expires_at is not None
-        assert event_seat2.hold_expires_at is not None
     finally:
         db.rollback()
         db.close()
@@ -504,9 +475,6 @@ def test_expire_pending_reservations_rolls_back_on_failure(monkeypatch):
             event_id=event.id,
             price=10.0,
             status=EventSeatStatus.HELD,
-            hold_expires_at=datetime.now(
-                ZoneInfo("Europe/Athens")
-            ) - timedelta(minutes=1)
         )
 
         event_seat2 = EventSeatModel(
@@ -514,9 +482,6 @@ def test_expire_pending_reservations_rolls_back_on_failure(monkeypatch):
             event_id=event.id,
             price=10.0,
             status=EventSeatStatus.HELD,
-            hold_expires_at=datetime.now(
-                ZoneInfo("Europe/Athens")
-            ) - timedelta(minutes=1)
         )
 
         db.add_all([event_seat1, event_seat2])
@@ -561,8 +526,6 @@ def test_expire_pending_reservations_rolls_back_on_failure(monkeypatch):
             assert reservation2.status == ReservationStatus.PENDING
             assert saved_event_seat1.status==EventSeatStatus.HELD
             assert saved_event_seat2.status == EventSeatStatus.HELD
-            assert saved_event_seat1.hold_expires_at is not None
-            assert saved_event_seat2.hold_expires_at is not None
         finally:
             check_db.close()
     finally:
@@ -626,9 +589,6 @@ def test_expire_pending_reservations_uses_skip_locked():
             event_id=event.id,
             price=10.0,
             status=EventSeatStatus.HELD,
-            hold_expires_at=datetime.now(
-                ZoneInfo("Europe/Athens")
-            ) - timedelta(minutes=1)
         )
 
         event_seat2 = EventSeatModel(
@@ -636,9 +596,6 @@ def test_expire_pending_reservations_uses_skip_locked():
             event_id=event.id,
             price=10.0,
             status=EventSeatStatus.HELD,
-            hold_expires_at=datetime.now(
-                ZoneInfo("Europe/Athens")
-            ) - timedelta(minutes=1)
         )
 
         db.add_all([event_seat1, event_seat2])
@@ -686,8 +643,6 @@ def test_expire_pending_reservations_uses_skip_locked():
             assert reservation2.status == ReservationStatus.EXPIRED
             assert saved_event_seat1.status==EventSeatStatus.HELD
             assert saved_event_seat2.status == EventSeatStatus.AVAILABLE
-            assert saved_event_seat1.hold_expires_at is not None
-            assert saved_event_seat2.hold_expires_at is  None
         finally:
             check_db.close()
             worker1_db.close()
