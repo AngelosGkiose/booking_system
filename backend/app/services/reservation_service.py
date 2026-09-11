@@ -1,9 +1,11 @@
-from datetime import datetime, timedelta
+from datetime import datetime
 from zoneinfo import ZoneInfo
 
 from rq import Retry
 from fastapi import HTTPException
 from starlette import status
+
+
 from app.queue import reservation_queue
 from app.models import ReservationModel
 from app.models.eventseat import EventSeatStatus
@@ -11,6 +13,7 @@ from app.models.reservation import ReservationStatus
 from app.repositories.reservation_repository import get_event_seat_for_update, add_reservation, \
     get_reservation_for_update, get_reservation_by_id_for_update, get_expired_pending_reservations_for_update
 import logging
+
 
 logger = logging.getLogger(__name__)
 def create_reservation_service(event_seat_id,db,current_user):
@@ -24,6 +27,10 @@ def create_reservation_service(event_seat_id,db,current_user):
         add_reservation(reservation,db)
         event_seat.status=EventSeatStatus.HELD
         db.commit()
+        logger.info("Reservation %s created",reservation.id)
+    except HTTPException:
+        db.rollback()
+        raise
     except Exception:
         db.rollback()
         logger.exception("Failed to create reservation")
@@ -53,9 +60,14 @@ def confirm_reservation_service(reservation_id,db,current_user):
         event_seat.status=EventSeatStatus.RESERVED
         db.commit()
         db.refresh(reservation)
+        logger.info("Reservation %s confirmed",reservation.id)
         return reservation
-    except Exception :
+    except HTTPException:
         db.rollback()
+        raise
+    except Exception:
+        db.rollback()
+        logger.exception("Failed to confirm reservation")
         raise
 
 def cancel_reservation_service(reservation_id,db,current_user):
@@ -72,9 +84,14 @@ def cancel_reservation_service(reservation_id,db,current_user):
         event_seat.status=EventSeatStatus.AVAILABLE
         db.commit()
         db.refresh(reservation)
+        logger.info("Reservation %s cancelled",reservation.id)
         return reservation
-    except Exception :
+    except HTTPException:
         db.rollback()
+        raise
+    except Exception:
+        db.rollback()
+        logger.exception("Failed to cancel reservation")
         raise
 
 def expire_reservation_service(reservation_id,db):
@@ -93,9 +110,14 @@ def expire_reservation_service(reservation_id,db):
         event_seat.status=EventSeatStatus.AVAILABLE
         db.commit()
         db.refresh(reservation)
+        logger.info("Reservation %s got expired",reservation.id)
         return reservation
-    except Exception :
+    except HTTPException:
         db.rollback()
+        raise
+    except Exception:
+        db.rollback()
+        logger.exception("Failed to expire reservation")
         raise
 
 def expire_pending_reservations_service(db):
@@ -107,31 +129,40 @@ def expire_pending_reservations_service(db):
         for reservation in reservations:
             event_seat = get_event_seat_for_update(reservation.event_seat_id,db)
             if event_seat.status !=EventSeatStatus.HELD:
+                logger.warning("Skipping reservation %s because event seat %s is not HELD",reservation.id,event_seat.id)
                 continue
             reservation.status = ReservationStatus.EXPIRED
             event_seat.status = EventSeatStatus.AVAILABLE
             expired_reservations.append(reservation)
+            logger.info("Reservation %s expired", reservation.id)
         db.commit()
         return expired_reservations
-    except Exception :
+    except Exception:
         db.rollback()
+        logger.exception("Failed to expire reservation")
         raise
 
 def expire_reservation_background_service(reservation_id, db):
     try:
         reservation = get_reservation_by_id_for_update(reservation_id, db)
         if not reservation:
+            logger.debug("Reservation %s not found", reservation_id)
             return
         if reservation.status != ReservationStatus.PENDING:
+            logger.debug("Skipping reservation %s because status is %s",reservation.id,reservation.status)
             return
         if reservation.expires_at > datetime.now(ZoneInfo("Europe/Athens")):
+            logger.debug(f"Reservation: {reservation_id} has not expired yet")
             return
         event_seat = get_event_seat_for_update(reservation.event_seat_id, db)
         if event_seat.status != EventSeatStatus.HELD:
+            logger.warning(f"Event seat {event_seat.id} not held")
             return
         reservation.status = ReservationStatus.EXPIRED
         event_seat.status = EventSeatStatus.AVAILABLE
         db.commit()
+        logger.info("Reservation: %s got expired",reservation.id)
     except Exception:
         db.rollback()
+        logger.exception("Failed to expire reservation")
         raise
