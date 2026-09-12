@@ -17,11 +17,14 @@ def create_access_token(data: dict):
 
 def decode_access_token(token):
     try:
-        payload=jwt.decode(token, settings.secret_key, algorithm=[settings.algorithm])
+        payload=jwt.decode(token, settings.secret_key, algorithms=[settings.algorithm])
         user_id=payload.get("sub")
         if not user_id:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
-        return user_id
+        try:
+            return int(user_id)
+        except ValueError:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
     except jwt.ExpiredSignatureError:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token expired")
     except jwt.InvalidTokenError:
