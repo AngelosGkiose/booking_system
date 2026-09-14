@@ -1,4 +1,4 @@
-
+from datetime import date
 
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
@@ -29,5 +29,5 @@ def cancel_reservation(reservation_id: int,current_user:UserModel = Depends(get_
 
 
 @router.get("/",response_model=ReservationPage,status_code=status.HTTP_200_OK)
-def get_reservations(reservation_status: ReservationStatus | None = Query(default=None),page:int=Query(default=1,ge=1),limit:int=Query(default=20,gt=0,le=100),current_user:UserModel = Depends(get_current_user),db: Session = Depends(get_db)):
-    return get_user_reservations_service(reservation_status,page,limit,current_user,db)
+def get_reservations(event_id:int | None = Query(default=None, gt=0),reservation_status: ReservationStatus | None = Query(default=None),date_from:date| None = Query(default=None),date_to:date| None = Query(default=None),page:int=Query(default=1,ge=1),limit:int=Query(default=20,gt=0,le=100),current_user:UserModel = Depends(get_current_user),db: Session = Depends(get_db)):
+    return get_user_reservations_service(event_id,reservation_status,date_from,date_to,page,limit,current_user,db)
