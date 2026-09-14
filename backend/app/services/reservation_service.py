@@ -169,11 +169,11 @@ def expire_reservation_background_service(reservation_id, db):
         logger.exception("Failed to expire reservation")
         raise
 
-def get_user_reservations_service(page,limit,current_user, db):
+def get_user_reservations_service(reservation_status,page,limit,current_user, db):
     skip=(page-1)*limit
-    total_items=count_user_reservations_repo(current_user.id,db)
+    total_items=count_user_reservations_repo(reservation_status,current_user.id,db)
     total_pages=ceil(total_items/limit)
-    items=get_user_reservations_repo(skip,limit,current_user.id,db)
+    items=get_user_reservations_repo(reservation_status,skip,limit,current_user.id,db)
     has_next = page < total_pages
     has_previous = page > 1
     return {"items":items,"total_items":total_items,"page":page,"limit":limit,"total_pages":total_pages,"has_next":has_next,"has_previous":has_previous}
