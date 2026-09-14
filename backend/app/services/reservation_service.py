@@ -11,7 +11,8 @@ from app.models import ReservationModel
 from app.models.eventseat import EventSeatStatus
 from app.models.reservation import ReservationStatus
 from app.repositories.reservation_repository import get_event_seat_for_update, add_reservation, \
-    get_reservation_for_update, get_reservation_by_id_for_update, get_expired_pending_reservations_for_update
+    get_reservation_for_update, get_reservation_by_id_for_update, get_expired_pending_reservations_for_update, \
+    get_user_reservations_repo
 import logging
 
 
@@ -166,3 +167,6 @@ def expire_reservation_background_service(reservation_id, db):
         db.rollback()
         logger.exception("Failed to expire reservation")
         raise
+
+def get_user_reservations_service(current_user, db):
+    return get_user_reservations_repo(current_user.id,db)

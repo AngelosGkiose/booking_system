@@ -7,7 +7,7 @@ from app.dependencies.get_db import get_db
 from app.models import UserModel
 from app.schemas.reservation import ReservationCreate, ReservationResponse
 from app.services.reservation_service import create_reservation_service, confirm_reservation_service, \
-    cancel_reservation_service
+    cancel_reservation_service, get_user_reservations_service
 
 router = APIRouter(prefix="/reservations", tags=["reservations"])
 
@@ -23,3 +23,8 @@ def confirm_reservation(reservation_id: int,current_user:UserModel = Depends(get
 @router.post("/{reservation_id}/cancel",response_model=ReservationResponse,status_code=status.HTTP_200_OK)
 def cancel_reservation(reservation_id: int,current_user:UserModel = Depends(get_current_user),db: Session = Depends(get_db)):
     return cancel_reservation_service(reservation_id,db,current_user)
+
+
+@router.get("/",response_model=list[ReservationResponse],status_code=status.HTTP_200_OK)
+def get_reservations(current_user:UserModel = Depends(get_current_user),db: Session = Depends(get_db)):
+    return get_user_reservations_service(current_user,db)
