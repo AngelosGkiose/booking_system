@@ -17,3 +17,12 @@ class ReservationResponse(BaseModel):
     expires_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+class ReservationPage(BaseModel):
+    items: list[ReservationResponse]
+    total_items: int
+    page: int
+    limit: int
+    total_pages:int
+    has_next: bool
+    has_previous: bool

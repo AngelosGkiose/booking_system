@@ -7,7 +7,7 @@ from starlette import status
 from app.dependencies.get_current_user import get_current_user
 from app.dependencies.get_db import get_db
 from app.models import UserModel
-from app.schemas.reservation import ReservationCreate, ReservationResponse
+from app.schemas.reservation import ReservationCreate, ReservationResponse, ReservationPage
 from app.services.reservation_service import create_reservation_service, confirm_reservation_service, \
     cancel_reservation_service, get_user_reservations_service
 
@@ -27,6 +27,6 @@ def cancel_reservation(reservation_id: int,current_user:UserModel = Depends(get_
     return cancel_reservation_service(reservation_id,db,current_user)
 
 
-@router.get("/",response_model=list[ReservationResponse],status_code=status.HTTP_200_OK)
-def get_reservations(skip:int=Query(default=0,ge=0),limit:int=Query(default=20,gt=0,le=100),current_user:UserModel = Depends(get_current_user),db: Session = Depends(get_db)):
-    return get_user_reservations_service(skip,limit,current_user,db)
+@router.get("/",response_model=ReservationPage,status_code=status.HTTP_200_OK)
+def get_reservations(page:int=Query(default=1,ge=1),limit:int=Query(default=20,gt=0,le=100),current_user:UserModel = Depends(get_current_user),db: Session = Depends(get_db)):
+    return get_user_reservations_service(page,limit,current_user,db)
