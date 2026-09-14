@@ -1,4 +1,6 @@
-from fastapi import APIRouter, Depends
+
+
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 from starlette import status
 
@@ -26,5 +28,5 @@ def cancel_reservation(reservation_id: int,current_user:UserModel = Depends(get_
 
 
 @router.get("/",response_model=list[ReservationResponse],status_code=status.HTTP_200_OK)
-def get_reservations(current_user:UserModel = Depends(get_current_user),db: Session = Depends(get_db)):
-    return get_user_reservations_service(current_user,db)
+def get_reservations(skip:int=Query(default=0,ge=0),limit:int=Query(default=20,gt=0,le=100),current_user:UserModel = Depends(get_current_user),db: Session = Depends(get_db)):
+    return get_user_reservations_service(skip,limit,current_user,db)

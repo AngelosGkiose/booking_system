@@ -168,5 +168,5 @@ def expire_reservation_background_service(reservation_id, db):
         logger.exception("Failed to expire reservation")
         raise
 
-def get_user_reservations_service(current_user, db):
-    return get_user_reservations_repo(current_user.id,db)
+def get_user_reservations_service(skip,limit,current_user, db):
+    return get_user_reservations_repo(skip,limit,current_user.id,db)
