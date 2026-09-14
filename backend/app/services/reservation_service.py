@@ -13,7 +13,7 @@ from app.models.eventseat import EventSeatStatus
 from app.models.reservation import ReservationStatus
 from app.repositories.reservation_repository import get_event_seat_for_update, add_reservation, \
     get_reservation_for_update, get_reservation_by_id_for_update, get_expired_pending_reservations_for_update, \
-    get_user_reservations_repo, count_user_reservations_repo
+    get_user_reservations_repo, count_user_reservations_repo, get_user_reservation_by_id_repo
 import logging
 
 
@@ -180,3 +180,9 @@ def get_user_reservations_service(event_id,reservation_status,date_from,date_to,
     has_next = page < total_pages
     has_previous = page > 1
     return {"items":items,"total_items":total_items,"page":page,"limit":limit,"total_pages":total_pages,"has_next":has_next,"has_previous":has_previous}
+
+def get_user_reservation_by_id_service(reservation_id,db,current_user):
+    reservation = get_user_reservation_by_id_repo(reservation_id, current_user.id, db)
+    if not reservation:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail="Reservation not found")
+    return reservation

@@ -10,7 +10,7 @@ from app.models import UserModel
 from app.models.reservation import ReservationStatus
 from app.schemas.reservation import ReservationCreate, ReservationResponse, ReservationPage
 from app.services.reservation_service import create_reservation_service, confirm_reservation_service, \
-    cancel_reservation_service, get_user_reservations_service
+    cancel_reservation_service, get_user_reservations_service, get_user_reservation_by_id_service
 
 router = APIRouter(prefix="/reservations", tags=["reservations"])
 
@@ -31,3 +31,8 @@ def cancel_reservation(reservation_id: int,current_user:UserModel = Depends(get_
 @router.get("/",response_model=ReservationPage,status_code=status.HTTP_200_OK)
 def get_reservations(event_id:int | None = Query(default=None, gt=0),reservation_status: ReservationStatus | None = Query(default=None),date_from:date| None = Query(default=None),date_to:date| None = Query(default=None),page:int=Query(default=1,ge=1),limit:int=Query(default=20,gt=0,le=100),current_user:UserModel = Depends(get_current_user),db: Session = Depends(get_db)):
     return get_user_reservations_service(event_id,reservation_status,date_from,date_to,page,limit,current_user,db)
+
+
+@router.get("/{reservation_id}",response_model=ReservationResponse,status_code=status.HTTP_200_OK)
+def get_reservation_by_id(reservation_id: int,current_user:UserModel = Depends(get_current_user),db: Session = Depends(get_db)):
+    return get_user_reservation_by_id_service(reservation_id, db, current_user)

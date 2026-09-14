@@ -16,6 +16,8 @@ def get_reservation_for_update(reservation_id,db,user_id,):
 def get_reservation_by_id_for_update(reservation_id,db):
     return db.query(ReservationModel).filter(ReservationModel.id == reservation_id).with_for_update().first()
 
+def  get_user_reservation_by_id_repo(reservation_id,current_user_id,db):
+    return db.query(ReservationModel).filter(ReservationModel.id == reservation_id,ReservationModel.user_id==current_user_id).first()
 
 def get_expired_pending_reservations_for_update(now,db):
     return db.query(ReservationModel).filter(ReservationModel.status==ReservationStatus.PENDING,ReservationModel.expires_at<=now).with_for_update(skip_locked=True).all()
