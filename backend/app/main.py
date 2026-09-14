@@ -5,9 +5,12 @@ from sqlalchemy.orm import Session
 from starlette import status
 
 from app.dependencies.get_db import get_db
+from app.routers.reservations import router as reservations_router
+from app.routers.auth import router as auth
 app = FastAPI()
 
-
+app.include_router(reservations_router)
+app.include_router(auth)
 
 @app.get("/health")
 def health_check():

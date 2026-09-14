@@ -12,7 +12,6 @@ def authenticate_user(email, password, db):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,detail="Incorrect email or password")
     if not verify_password(password, user.hashed_password):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Incorrect email or password")
-    user_id=user.id
-    return create_access_token({ "sub":str(user_id)})
+    return user
 
 
