@@ -7,3 +7,8 @@ httpx2
 alembic
 pytest
 starlette
+
+rq
+pydantic
+pwdlib
+pyjwt
