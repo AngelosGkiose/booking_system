@@ -22,7 +22,7 @@ def  get_user_reservation_by_id_repo(reservation_id,current_user_id,db):
 def get_expired_pending_reservations_for_update(now,db):
     return db.query(ReservationModel).filter(ReservationModel.status==ReservationStatus.PENDING,ReservationModel.expires_at<=now).with_for_update(skip_locked=True).all()
 
-def get_user_reservations_repo(sort_by,order,event_id,reservation_status,skip,date_from,date_to,limit,current_user_id,db):
+def get_user_reservations_repo(sort_by,order,event_id,reservation_status,date_from,date_to,skip,limit,current_user_id,db):
     query = db.query(ReservationModel).join(EventSeatModel,ReservationModel.event_seat_id==EventSeatModel.id).filter(ReservationModel.user_id == current_user_id)
     if event_id is not None:
         query = query.filter(EventSeatModel.event_id == event_id)
