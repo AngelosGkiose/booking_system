@@ -169,16 +169,28 @@ def expire_reservation_background_service(reservation_id, db):
         logger.exception("Failed to expire reservation")
         raise
 
-def get_user_reservations_service(event_id,reservation_status,date_from,date_to,page,limit,current_user, db):
+def get_user_reservations_service(sort_by,order,event_id,reservation_status,date_from,date_to,page,limit,current_user, db):
     if date_from is not None and date_to is not None:
         if date_from > date_to:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,detail="date_from must be before date_to")
+
+    allowed_sort_fields = {"created_at","expires_at"}
+
+    if sort_by not in allowed_sort_fields:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,detail="Invalid sort_by value")
+
+    allowed_orders = {"asc","desc"}
+
+    if order not in allowed_orders:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,detail="Invalid order value")
+
     skip=(page-1)*limit
     total_items= count_user_reservations_repo(event_id,reservation_status, date_from, date_to, current_user.id, db)
     total_pages=ceil(total_items/limit)
-    items=get_user_reservations_repo(event_id,reservation_status,date_from,date_to,skip,limit,current_user.id,db)
+    items=get_user_reservations_repo(sort_by,order,event_id,reservation_status,date_from,date_to,skip,limit,current_user.id,db)
     has_next = page < total_pages
     has_previous = page > 1
+    
     return {"items":items,"total_items":total_items,"page":page,"limit":limit,"total_pages":total_pages,"has_next":has_next,"has_previous":has_previous}
 
 def get_user_reservation_by_id_service(reservation_id,db,current_user):
