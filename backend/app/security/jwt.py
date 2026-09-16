@@ -4,8 +4,8 @@ from datetime import datetime, timezone, timedelta
 import jwt
 from fastapi import HTTPException
 from starlette import status
-
 from app.config import  settings
+
 
 
 def create_access_token(data: dict):
@@ -36,10 +36,10 @@ def decode_access_token(token):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
 
 
-def create_refresh_token(data: dict):
+def create_refresh_token(data: dict,jti,exp_time):
     payload=data.copy()
-    exp_time=datetime.now(timezone.utc)+ timedelta(days=settings.refresh_token_expiration_days)
     payload["type"]="refresh"
+    payload["jti"]=jti
     payload["exp"]=exp_time
     return jwt.encode(payload,settings.secret_key,settings.algorithm)
 
@@ -52,8 +52,11 @@ def decode_refresh_token(token: str):
         token_type = payload.get("type")
         if token_type != "refresh":
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,detail="Invalid token type")
+        jti=payload.get("jti")
+        if not jti:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
         try:
-            return int(user_id)
+            return int(user_id),jti
         except (ValueError, TypeError):
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
     except jwt.ExpiredSignatureError:
