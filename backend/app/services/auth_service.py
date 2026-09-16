@@ -6,7 +6,8 @@ from uuid import uuid4
 
 from app.config import settings
 from app.models import RefreshTokenModel
-from app.repositories.refresh_token_repository import add_refresh_token, get_user_refresh_token
+from app.repositories.refresh_token_repository import add_refresh_token, get_user_refresh_token, \
+    get_active_user_sessions_repo, get_user_sessions_repo
 from app.repositories.user_repository import get_user_by_email, get_user_by_id
 from app.security.jwt import decode_refresh_token, create_access_token, create_refresh_token
 from app.security.passwords import verify_password
@@ -72,6 +73,23 @@ def logout_user_service(refresh_token:str,db):
         return
     if refresh_token_record.expires_at < datetime.now(timezone.utc):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Refresh token has expired")
+    try:
+        refresh_token_record.revoked_at=datetime.now(timezone.utc)
+        db.commit()
+        return
+    except Exception :
+        db.rollback()
+        raise
+
+def get_active_sessions_service(user_id,db):
+    return get_active_user_sessions_repo(user_id,db)
+
+def delete_user_session_service(session_id,user_id,db):
+    refresh_token_record= get_user_sessions_repo(session_id, user_id, db)
+    if not refresh_token_record:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found")
+    if refresh_token_record.revoked_at is not None:
+        return
     try:
         refresh_token_record.revoked_at=datetime.now(timezone.utc)
         db.commit()

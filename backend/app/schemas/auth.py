@@ -46,3 +46,10 @@ class RefreshTokenRequest(BaseModel):
 
 class LogOutRequest(BaseModel):
     refresh_token: str
+
+class SessionResponse(BaseModel):
+    id: int
+    created_at: datetime
+    expires_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
