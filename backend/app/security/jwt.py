@@ -24,7 +24,7 @@ def decode_access_token(token):
         if not user_id:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
         token_type = payload.get("type")
-        if token_type != "refresh":
+        if token_type != "access":
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,detail="Invalid token type")
         try:
             return int(user_id)
