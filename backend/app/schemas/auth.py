@@ -5,8 +5,8 @@ from pydantic import BaseModel, EmailStr, ConfigDict,field_validator
 
 class TokenResponse(BaseModel):
     access_token: str
+    refresh_token: str
     token_type: str
-
 
 class RegisterRequest(BaseModel):
     email: EmailStr
@@ -40,3 +40,10 @@ class UserResponse(BaseModel):
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+class RefreshTokenRequest(BaseModel):
+    refresh_token: str
+
+class AccessTokenResponse(BaseModel):
+    access_token: str
+    token_type: str
