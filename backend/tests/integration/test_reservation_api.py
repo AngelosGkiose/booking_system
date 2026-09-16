@@ -357,7 +357,7 @@ def test_filter_reservations_by_date_from():
         db.commit()
 
         token = create_access_token({"sub": str(user.id)})
-        date_from = (now - timedelta(days=6)).isoformat()
+        date_from = (now - timedelta(days=6)).date().isoformat()
 
         response = client.get(f"/reservations/?date_from={date_from}", headers={"Authorization": f"Bearer {token}"})
 
@@ -409,7 +409,7 @@ def test_filter_reservations_by_date_to():
         db.commit()
 
         token = create_access_token({"sub": str(user.id)})
-        date_to = (now - timedelta(days=4)).isoformat()
+        date_to = (now - timedelta(days=4)).date().isoformat()
 
         response = client.get(f"/reservations/?date_to={date_to}", headers={"Authorization": f"Bearer {token}"})
 
@@ -424,3 +424,105 @@ def test_filter_reservations_by_date_to():
 
     finally:
         db.close()
+
+
+def test_invalid_reservation_date_range():
+    db = SessionLocal()
+    try:
+        user = UserModel(email="user@test.com", hashed_password="hashed_password")
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+        token = create_access_token({"sub": str(user.id)})
+        now = datetime.now(ZoneInfo("Europe/Athens"))
+        date_from = now.date().isoformat()
+        date_to = (now - timedelta(days=5)).date().isoformat()
+        response = client.get(f"/reservations/?date_from={date_from}&date_to={date_to}", headers={"Authorization": f"Bearer {token}"})
+        assert response.status_code == 400
+    finally:
+        db.close()
+
+def test_get_reservation_by_id():
+    db = SessionLocal()
+    try:
+        user = UserModel(email="user@test.com", hashed_password="hashed_password")
+        db.add(user)
+        db.flush()
+
+        venue = VenueModel(name="Test Venue", address="Test Address", city="Athens")
+        db.add(venue)
+        db.flush()
+
+        seat = SeatModel(venue_id=venue.id, section="A", row_label="1", seat_number="1")
+        db.add(seat)
+        db.flush()
+
+        now = datetime.now(ZoneInfo("Europe/Athens"))
+        event = EventModel(venue_id=venue.id, name="Test Event", start_time=now + timedelta(days=1), end_time=now + timedelta(days=1, hours=2))
+        db.add(event)
+        db.flush()
+
+        event_seat = EventSeatModel(event_id=event.id, seat_id=seat.id, price=10, status=EventSeatStatus.HELD)
+        db.add(event_seat)
+        db.flush()
+
+        reservation = ReservationModel(user_id=user.id, event_seat_id=event_seat.id)
+        db.add(reservation)
+        db.commit()
+
+        reservation_id = reservation.id
+        token = create_access_token({"sub": str(user.id)})
+        response = client.get(f"/reservations/{reservation_id}", headers={"Authorization": f"Bearer {token}"})
+
+        assert response.status_code == 200
+
+        data = response.json()
+
+        assert data["id"] == reservation_id
+        assert data["user_id"] == user.id
+        assert data["event_seat_id"] == event_seat.id
+
+    finally:
+        db.close()
+
+def test_user_cannot_get_another_users_reservation():
+    db = SessionLocal()
+    try:
+        user_1 = UserModel(email="user1@test.com", hashed_password="hashed_password")
+        user_2 = UserModel(email="user2@test.com", hashed_password="hashed_password")
+        db.add_all([user_1, user_2])
+        db.flush()
+
+        venue = VenueModel(name="Test Venue", address="Test Address", city="Athens")
+        db.add(venue)
+        db.flush()
+
+        seat = SeatModel(venue_id=venue.id, section="A", row_label="1", seat_number="1")
+        db.add(seat)
+        db.flush()
+
+        now = datetime.now(ZoneInfo("Europe/Athens"))
+        event = EventModel(venue_id=venue.id, name="Test Event", start_time=now + timedelta(days=1), end_time=now + timedelta(days=1, hours=2))
+        db.add(event)
+        db.flush()
+
+        event_seat = EventSeatModel(event_id=event.id, seat_id=seat.id, price=10, status=EventSeatStatus.HELD)
+        db.add(event_seat)
+        db.flush()
+
+        reservation = ReservationModel(user_id=user_2.id, event_seat_id=event_seat.id)
+        db.add(reservation)
+        db.commit()
+
+        reservation_id = reservation.id
+        token = create_access_token({"sub": str(user_1.id)})
+        response = client.get(f"/reservations/{reservation_id}", headers={"Authorization": f"Bearer {token}"})
+
+        assert response.status_code == 404
+
+    finally:
+        db.close()
+
+def test_get_reservations_requires_authentication():
+    response = client.get("/reservations/")
+    assert response.status_code == 401

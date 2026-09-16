@@ -15,7 +15,7 @@ results = []
 def test_create_reservation_holds_available_event_seat():
     db=SessionLocal()
     try:
-        user=UserModel(email="agg@gmail.com",password_hash="123")
+        user=UserModel(email="agg@gmail.com",hashed_password="123")
         db.add(user)
         db.flush()
         venue = VenueModel(name="Main Venue1", address="Kristal1", city="Main City1")
@@ -47,7 +47,7 @@ def test_create_reservation_holds_available_event_seat():
 def test_create_reservation_returns_404_when_event_seat_not_found():
     db = SessionLocal()
     try:
-        user = UserModel(email="agg@gmail.com", password_hash="123")
+        user = UserModel(email="agg@gmail.com", hashed_password="123")
         db.add(user)
         db.flush()
         venue = VenueModel(name="Main Venue1", address="Kristal1", city="Main City1")
@@ -78,7 +78,7 @@ def test_create_reservation_returns_404_when_event_seat_not_found():
 def test_create_reservation_returns_409_when_event_seat_is_held():
     db = SessionLocal()
     try:
-        user = UserModel(email="agg@gmail.com", password_hash="123")
+        user = UserModel(email="agg@gmail.com", hashed_password="123")
         db.add(user)
         db.flush()
         venue = VenueModel(name="Main Venue1", address="Kristal1", city="Main City1")
@@ -109,7 +109,7 @@ def test_create_reservation_returns_409_when_event_seat_is_held():
 def test_create_reservation_returns_409_when_event_seat_is_reserved():
     db = SessionLocal()
     try:
-        user = UserModel(email="agg@gmail.com", password_hash="123")
+        user = UserModel(email="agg@gmail.com", hashed_password="123")
         db.add(user)
         db.flush()
         venue = VenueModel(name="Main Venue1", address="Kristal1", city="Main City1")
@@ -140,7 +140,7 @@ def test_create_reservation_returns_409_when_event_seat_is_reserved():
 def test_create_reservation_rolls_back_on_failure(monkeypatch):
     db = SessionLocal()
     try:
-        user = UserModel(email="agg@gmail.com", password_hash="123")
+        user = UserModel(email="agg@gmail.com", hashed_password="123")
         db.add(user)
         db.flush()
         venue = VenueModel(name="Main Venue1", address="Kristal1", city="Main City1")
@@ -186,8 +186,8 @@ def test_create_reservation_prevents_double_booking():
     results.clear()
     db = SessionLocal()
     try:
-        user1 = UserModel(email="agg@gmail.com", password_hash="123")
-        user2=UserModel(email="agg@12321gmail.com", password_hash="123")
+        user1 = UserModel(email="agg@gmail.com", hashed_password="123")
+        user2=UserModel(email="agg@12321gmail.com", hashed_password="123")
         db.add(user1)
         db.flush()
         user1_id=user1.id

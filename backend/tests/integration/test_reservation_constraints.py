@@ -12,7 +12,7 @@ from app.models.reservation import ReservationStatus
 def test_reservation_requires_existing_user():
     db=SessionLocal()
     try:
-        user = UserModel(email='123@gmail.com', password_hash='123')
+        user = UserModel(email='123@gmail.com', hashed_password='123')
         db.add(user)
         db.flush()
         venue = VenueModel(name="Main Venue1", address="Kristal1", city="Main City1")
@@ -44,7 +44,7 @@ def test_reservation_requires_existing_user():
 def test_reservation_requires_existing_event_seat():
     db=SessionLocal()
     try:
-        user = UserModel(email='123@gmail.com', password_hash='123')
+        user = UserModel(email='123@gmail.com', hashed_password='123')
         db.add(user)
         db.flush()
         venue = VenueModel(name="Main Venue1", address="Kristal1", city="Main City1")
@@ -74,7 +74,7 @@ def test_reservation_requires_existing_event_seat():
 def test_reservation_default_status_is_pending():
     db = SessionLocal()
     try:
-        user = UserModel(email='123@gmail.com', password_hash='123')
+        user = UserModel(email='123@gmail.com', hashed_password='123')
         db.add(user)
         db.flush()
         venue = VenueModel(name="Main Venue1", address="Kristal1", city="Main City1")
@@ -106,7 +106,7 @@ def test_reservation_default_status_is_pending():
 def test_reservation_expires_at_is_about_ten_minutes_after_created_at():
     db = SessionLocal()
     try:
-        user = UserModel(email='123@gmail.com', password_hash='123')
+        user = UserModel(email='123@gmail.com', hashed_password='123')
         db.add(user)
         db.flush()
         venue = VenueModel(name="Main Venue1", address="Kristal1", city="Main City1")
@@ -141,7 +141,7 @@ def test_reservation_expires_at_is_about_ten_minutes_after_created_at():
 def test_reservation_relationships():
     db = SessionLocal()
     try:
-        user = UserModel(email='123@gmail.com', password_hash='123')
+        user = UserModel(email='123@gmail.com', hashed_password='123')
         db.add(user)
         db.flush()
         venue = VenueModel(name="Main Venue1", address="Kristal1", city="Main City1")
@@ -173,10 +173,10 @@ def test_reservation_relationships():
 def test_same_event_seat_allows_multiple_reservations():
     db = SessionLocal()
     try:
-        user = UserModel(email='123@gmail.com', password_hash='123')
+        user = UserModel(email='123@gmail.com', hashed_password='123')
         db.add(user)
         db.flush()
-        user2 = UserModel(email='123@gmaildasdas.coms', password_hash='123')
+        user2 = UserModel(email='123@gmaildasdas.coms', hashed_password='123')
         db.add(user2)
         db.flush()
         venue = VenueModel(name="Main Venue1", address="Kristal1", city="Main City1")
@@ -210,10 +210,10 @@ def test_same_event_seat_allows_multiple_reservations():
 def test_same_user_can_reserve_same_event_seat_again():
     db = SessionLocal()
     try:
-        user = UserModel(email='123@gmail.com', password_hash='123')
+        user = UserModel(email='123@gmail.com', hashed_password='123')
         db.add(user)
         db.flush()
-        user2 = UserModel(email='123@gmaildasdas.coms', password_hash='123')
+        user2 = UserModel(email='123@gmaildasdas.coms', hashed_password='123')
         db.add(user2)
         db.flush()
         venue = VenueModel(name="Main Venue1", address="Kristal1", city="Main City1")

@@ -15,7 +15,7 @@ results=[]
 def test_cancel_reservation_cancels_pending_reservation():
     db = SessionLocal()
     try:
-        user = UserModel(email="agg@gmail.com", password_hash="123")
+        user = UserModel(email="agg@gmail.com", hashed_password="123")
         db.add(user)
         db.flush()
         venue = VenueModel(name="Main Venue1", address="Kristal1", city="Main City1")
@@ -48,7 +48,7 @@ def test_cancel_reservation_cancels_pending_reservation():
 def test_cancel_reservation_returns_404_when_reservation_not_found():
     db = SessionLocal()
     try:
-        user = UserModel(email="agg@gmail.com", password_hash="123")
+        user = UserModel(email="agg@gmail.com", hashed_password="123")
         db.add(user)
         db.flush()
         venue = VenueModel(name="Main Venue1", address="Kristal1", city="Main City1")
@@ -81,10 +81,10 @@ def test_cancel_reservation_returns_404_when_reservation_not_found():
 def test_cancel_reservation_returns_404_when_reservation_belongs_to_another_user():
     db = SessionLocal()
     try:
-        user1 = UserModel(email="agg@gmail.com", password_hash="123")
+        user1 = UserModel(email="agg@gmail.com", hashed_password="123")
         db.add(user1)
         db.flush()
-        user2= UserModel(email="agg@gmaildsadsa.com", password_hash="123")
+        user2= UserModel(email="agg@gmaildsadsa.com", hashed_password="123")
         db.add(user2)
         db.flush()
         venue = VenueModel(name="Main Venue1", address="Kristal1", city="Main City1")
@@ -117,7 +117,7 @@ def test_cancel_reservation_returns_404_when_reservation_belongs_to_another_user
 def test_cancel_reservation_returns_409_when_reservation_is_not_pending():
     db = SessionLocal()
     try:
-        user = UserModel(email="agg@gmail.com", password_hash="123")
+        user = UserModel(email="agg@gmail.com", hashed_password="123")
         db.add(user)
         db.flush()
         venue = VenueModel(name="Main Venue1", address="Kristal1", city="Main City1")
@@ -150,7 +150,7 @@ def test_cancel_reservation_returns_409_when_reservation_is_not_pending():
 def test_cancel_reservation_returns_409_when_event_seat_is_not_held():
     db = SessionLocal()
     try:
-        user = UserModel(email="agg@gmail.com", password_hash="123")
+        user = UserModel(email="agg@gmail.com", hashed_password="123")
         db.add(user)
         db.flush()
         venue = VenueModel(name="Main Venue1", address="Kristal1", city="Main City1")
@@ -183,7 +183,7 @@ def test_cancel_reservation_returns_409_when_event_seat_is_not_held():
 def test_cancel_reservation_rolls_back_on_failure(monkeypatch):
     db = SessionLocal()
     try:
-        user = UserModel(email="agg@gmail.com", password_hash="123")
+        user = UserModel(email="agg@gmail.com", hashed_password="123")
         db.add(user)
         db.flush()
         venue = VenueModel(name="Main Venue1", address="Kristal1", city="Main City1")
@@ -232,7 +232,7 @@ def test_cancel_reservation_prevents_concurrent_cancellation():
     results.clear()
     db = SessionLocal()
     try:
-        user1 = UserModel(email="agg@gmail.com", password_hash="123")
+        user1 = UserModel(email="agg@gmail.com", hashed_password="123")
         db.add(user1)
         db.flush()
         user1_id = user1.id

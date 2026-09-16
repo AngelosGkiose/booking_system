@@ -16,7 +16,7 @@ def test_expire_pending_reservations_expires_all_valid_expired_reservations():
     try:
         user = UserModel(
             email="agg@gmail.com",
-            password_hash="123"
+            hashed_password="123"
         )
         db.add(user)
         db.flush()
@@ -121,7 +121,7 @@ def test_expire_pending_reservations_returns_empty_when_none_expired():
     try:
         user = UserModel(
             email="agg@gmail.com",
-            password_hash="123"
+            hashed_password="123"
         )
         db.add(user)
         db.flush()
@@ -218,7 +218,7 @@ def test_expire_pending_reservations_skips_event_seat_not_held():
     try:
         user = UserModel(
             email="agg@gmail.com",
-            password_hash="123"
+            hashed_password="123"
         )
         db.add(user)
         db.flush()
@@ -322,7 +322,7 @@ def test_expire_pending_reservations_ignores_non_pending_reservations():
     try:
         user = UserModel(
             email="agg@gmail.com",
-            password_hash="123"
+            hashed_password="123"
         )
         db.add(user)
         db.flush()
@@ -424,7 +424,7 @@ def test_expire_pending_reservations_rolls_back_on_failure(monkeypatch):
     try:
         user = UserModel(
             email="agg@gmail.com",
-            password_hash="123"
+            hashed_password="123"
         )
         db.add(user)
         db.flush()
@@ -538,7 +538,7 @@ def test_expire_pending_reservations_uses_skip_locked():
     try:
         user = UserModel(
             email="agg@gmail.com",
-            password_hash="123"
+            hashed_password="123"
         )
         db.add(user)
         db.flush()
