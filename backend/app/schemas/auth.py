@@ -44,3 +44,5 @@ class UserResponse(BaseModel):
 class RefreshTokenRequest(BaseModel):
     refresh_token: str
 
+class LogOutRequest(BaseModel):
+    refresh_token: str

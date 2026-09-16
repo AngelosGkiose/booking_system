@@ -57,3 +57,25 @@ def create_refresh_token_service(user_id,db,commit=True):
             db.rollback()
             raise
     return refresh_token
+
+def logout_user_service(refresh_token:str,db):
+    user_id,jti=decode_refresh_token(refresh_token)
+    user=get_user_by_id(user_id,db)
+    refresh_token_record=get_user_refresh_token(user_id,jti,db)
+    if not user:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,detail="Could not validate credentials")
+    if not refresh_token_record:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Could not validate refresh token")
+    if not user:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Could not validate credentials")
+    if refresh_token_record.revoked_at is not None:
+        return
+    if refresh_token_record.expires_at < datetime.now(timezone.utc):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Refresh token has expired")
+    try:
+        refresh_token_record.revoked_at=datetime.now(timezone.utc)
+        db.commit()
+        return
+    except Exception :
+        db.rollback()
+        raise
