@@ -7,7 +7,8 @@ from uuid import uuid4
 from app.config import settings
 from app.models import RefreshTokenModel
 from app.repositories.refresh_token_repository import add_refresh_token, get_user_refresh_token, \
-    get_active_user_sessions_repo, get_user_sessions_repo, get_user_all_sessions_repo
+    get_active_user_sessions_repo, get_user_sessions_repo, get_user_all_sessions_repo, get_all_expired_sessions_repo, \
+    delete_expired_sessions_repo
 from app.repositories.user_repository import get_user_by_email, get_user_by_id
 from app.security.jwt import decode_refresh_token, create_access_token, create_refresh_token
 from app.security.passwords import verify_password
@@ -107,6 +108,19 @@ def get_user_all_sessions_service(user_id,db):
         if session.revoked_at is not None:
             continue
         session.revoked_at = revoked_at
+    try:
+        db.commit()
+        return
+    except Exception:
+        db.rollback()
+        raise
+
+def delete_all_expired_sessions_background_service(db):
+    sessions=get_all_expired_sessions_repo(db)
+    if not sessions:
+        return
+    for session in sessions:
+        delete_expired_sessions_repo(session,db)
     try:
         db.commit()
         return

@@ -19,3 +19,14 @@ def get_user_sessions_repo(session_id,user_id,db):
 
 def get_user_all_sessions_repo(user_id,db):
     return db.query(RefreshTokenModel).filter(RefreshTokenModel.user_id==user_id).all()
+
+
+def get_all_expired_sessions_repo(db):
+    return db.query(RefreshTokenModel).filter(RefreshTokenModel.expires_at<datetime.now(timezone.utc)).all()
+
+
+
+def delete_expired_sessions_repo(session,db):
+    db.delete(session)
+
+    
