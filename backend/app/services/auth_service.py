@@ -7,7 +7,7 @@ from uuid import uuid4
 from app.config import settings
 from app.models import RefreshTokenModel
 from app.repositories.refresh_token_repository import add_refresh_token, get_user_refresh_token, \
-    get_active_user_sessions_repo, get_user_sessions_repo
+    get_active_user_sessions_repo, get_user_sessions_repo, get_user_all_sessions_repo
 from app.repositories.user_repository import get_user_by_email, get_user_by_id
 from app.security.jwt import decode_refresh_token, create_access_token, create_refresh_token
 from app.security.passwords import verify_password
@@ -95,5 +95,21 @@ def delete_user_session_service(session_id,user_id,db):
         db.commit()
         return
     except Exception :
+        db.rollback()
+        raise
+
+def get_user_all_sessions_service(user_id,db):
+    sessions=get_user_all_sessions_repo(user_id,db)
+    if not sessions:
+        return
+    revoked_at = datetime.now(timezone.utc)
+    for session in sessions:
+        if session.revoked_at is not None:
+            continue
+        session.revoked_at = revoked_at
+    try:
+        db.commit()
+        return
+    except Exception:
         db.rollback()
         raise

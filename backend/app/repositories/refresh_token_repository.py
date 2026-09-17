@@ -15,3 +15,7 @@ def get_active_user_sessions_repo(user_id,db):
 
 def get_user_sessions_repo(session_id,user_id,db):
     return db.query(RefreshTokenModel).filter(RefreshTokenModel.user_id==user_id,RefreshTokenModel.id==session_id).first()
+
+
+def get_user_all_sessions_repo(user_id,db):
+    return db.query(RefreshTokenModel).filter(RefreshTokenModel.user_id==user_id).all()

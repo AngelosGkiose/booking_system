@@ -10,7 +10,7 @@ from app.schemas.auth import TokenResponse, UserResponse, RegisterRequest, Refre
      SessionResponse
 from app.security.jwt import create_access_token
 from app.services.auth_service import authenticate_user, refresh_access_token_service, create_refresh_token_service, \
-     logout_user_service, get_active_sessions_service, delete_user_session_service
+     logout_user_service, get_active_sessions_service, delete_user_session_service, get_user_all_sessions_service
 from app.services.register import register_user_service
 
 router = APIRouter(prefix="/auth",tags=["auth"])
@@ -52,3 +52,8 @@ def get_active_sessions(current_user:UserModel = Depends(get_current_user),db:Se
 @router.delete("/sessions/{session_id}",status_code=status.HTTP_200_OK)
 def delete_user_session(session_id:int,current_user:UserModel=Depends(get_current_user),db:Session = Depends(get_db)):
      return delete_user_session_service(session_id,current_user.id,db)
+
+
+@router.delete("/sessions",status_code=status.HTTP_204_NO_CONTENT)
+def delete_all_user_sessions(current_user:UserModel=Depends(get_current_user),db:Session = Depends(get_db)):
+     get_user_all_sessions_service(current_user.id,db)
