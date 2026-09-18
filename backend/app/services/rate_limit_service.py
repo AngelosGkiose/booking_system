@@ -4,36 +4,34 @@ from starlette import status
 from app.queue import redis_connection
 
 
-def record_failed_login_attempt(client_ip: str):
-    key=f"rate_limit:login:ip:{client_ip}"
-    count=redis_connection.incr(key)
-    if count==1:
-        redis_connection.expire(key,60)
-    if count>5:
-        raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS,detail="Too many login requests")
-
-
-def clear_login_attempts(client_ip: str):
-    key = f"rate_limit:login:{client_ip}"
+def clear_rate_limit(key):
     redis_connection.delete(key)
 
-def record_failed_login_attempt_for_email(email: str):
-    email=email.lower()
-    key = f"rate_limit:login:email:{email}"
-    count=redis_connection.incr(key)
-    if count==1:
-        redis_connection.expire(key,300)
-    if count>5:
-        raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS,detail="Too many login requests")
 
-def clear_login_attempts_for_email(email: str):
-    key = f"rate_limit:login:email:{email.lower()}"
-    redis_connection.delete(key)
 
-def check_refresh_rate_limit(client_ip: str):
-    key = f"rate_limit:refresh:ip:{client_ip}"
+
+
+def record_rate_limit_attempt(key,limit,window_seconds):
     counter=redis_connection.incr(key)
     if counter==1:
-        redis_connection.expire(key,60)
-    if counter>20:
-        raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS,detail="Too many refresh requests")
+        redis_connection.expire(key,window_seconds)
+    ttl=redis_connection.ttl(key)
+    remaining=max(0,limit-counter)
+    blocked=False
+    if counter>limit:
+        blocked=True
+    return remaining,ttl,blocked
+
+
+
+def check_existing_rate_limit(key, limit, detail):
+    current=redis_connection.get(key)
+    if current is None:
+        counter=0
+    else:
+        counter=int(current)
+    ttl = redis_connection.ttl(key)
+    if counter>limit:
+        raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS,detail=detail,headers={"Retry-After":str(ttl)})
+
+    return ttl,counter
