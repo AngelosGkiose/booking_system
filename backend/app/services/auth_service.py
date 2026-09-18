@@ -8,7 +8,7 @@ from app.config import settings
 from app.models import RefreshTokenModel
 from app.repositories.refresh_token_repository import add_refresh_token, get_user_refresh_token, \
     get_active_user_sessions_repo, get_user_sessions_repo, get_user_all_sessions_repo, get_all_expired_sessions_repo, \
-    delete_expired_sessions_repo
+    delete_expired_sessions_repo, get_user_refresh_token_for_update
 from app.repositories.user_repository import get_user_by_email, get_user_by_id
 from app.security.jwt import decode_refresh_token, create_access_token, create_refresh_token
 from app.security.passwords import verify_password
@@ -25,8 +25,8 @@ def authenticate_user(email, password, db):
 
 def refresh_access_token_service(refresh_token:str,db):
     user_id,jti=decode_refresh_token(refresh_token)
+    refresh_token_record=get_user_refresh_token_for_update(user_id,jti,db)
     user=get_user_by_id(user_id,db)
-    refresh_token_record=get_user_refresh_token(user_id,jti,db)
     if not refresh_token_record:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Could not validate refresh token")
     if not user:

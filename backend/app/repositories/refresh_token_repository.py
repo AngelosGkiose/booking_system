@@ -9,6 +9,10 @@ def add_refresh_token(refresh_token,db):
 def get_user_refresh_token(user_id,jti,db):
     return db.query(RefreshTokenModel).filter(RefreshTokenModel.jti == jti,RefreshTokenModel.user_id==user_id).first()
 
+def get_user_refresh_token_for_update(user_id,jti,db):
+    return db.query(RefreshTokenModel).filter(RefreshTokenModel.jti == jti,RefreshTokenModel.user_id == user_id).with_for_update().first()
+
+
 def get_active_user_sessions_repo(user_id,db):
     return db.query(RefreshTokenModel).filter(RefreshTokenModel.user_id==user_id,RefreshTokenModel.revoked_at.is_(None),RefreshTokenModel.expires_at>datetime.now(timezone.utc)).all()
 
