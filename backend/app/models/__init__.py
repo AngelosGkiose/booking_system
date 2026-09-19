@@ -5,3 +5,4 @@ from app.models.event import EventModel
 from app.models.eventseat import EventSeatModel
 from app.models.reservation import ReservationModel
 from app.models.refresh_token import RefreshTokenModel
+from app.models.idempotencyrequest import IdempotencyRequestModel
