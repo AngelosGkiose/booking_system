@@ -6,28 +6,45 @@ from rq import Retry
 from fastapi import HTTPException
 from starlette import status
 
-
+from app.models.idempotencyrequest import IdempotencyRequestEnum
 from app.queue import reservation_queue
 from app.models import ReservationModel
 from app.models.eventseat import EventSeatStatus
 from app.models.reservation import ReservationStatus
 from app.repositories.reservation_repository import get_event_seat_for_update, add_reservation, \
     get_reservation_for_update, get_reservation_by_id_for_update, get_expired_pending_reservations_for_update, \
-    get_user_reservations_repo, count_user_reservations_repo, get_user_reservation_by_id_repo
+    get_user_reservations_repo, count_user_reservations_repo, get_user_reservation_by_id_repo, \
+    get_reservation_by_id_repo
 import logging
 
+from app.services.idempotency_service import create_idempotency_request, mark_idempotency_failed, \
+    mark_idempotency_completed
+from app.services.utils.hashing import generate_request_hash
 
 logger = logging.getLogger(__name__)
-def create_reservation_service(event_seat_id,db,current_user):
+
+def create_reservation_service(key,event_seat_id,db,current_user):
     try:
+        request_hash=generate_request_hash(event_seat_id)
+        idempotency_request=create_idempotency_request(current_user.id,key,request_hash,db)
+        if idempotency_request.status==IdempotencyRequestEnum.COMPLETED:
+            reservation= get_reservation_by_id_repo(idempotency_request.reservation_id,db)
+            if reservation is None:
+                raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,detail="Inconsistent idempotency state")
+            return reservation
         event_seat=get_event_seat_for_update(event_seat_id,db)
         if not event_seat:
+            mark_idempotency_failed(idempotency_request,404,"Event seat not found",db)
+            db.commit()
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail="Event seat not found")
         if event_seat.status!=EventSeatStatus.AVAILABLE:
+            mark_idempotency_failed(idempotency_request, 409, "Event seat is not available", db)
+            db.commit()
             raise HTTPException(status_code=status.HTTP_409_CONFLICT,detail="Event seat is not available")
         reservation=ReservationModel(user_id=current_user.id,event_seat_id=event_seat.id)
         add_reservation(reservation,db)
         event_seat.status=EventSeatStatus.HELD
+        mark_idempotency_completed(idempotency_request, reservation.id, 201, db)
         db.commit()
         logger.info("Reservation %s created",reservation.id)
     except HTTPException:

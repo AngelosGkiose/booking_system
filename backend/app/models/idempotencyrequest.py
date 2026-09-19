@@ -21,4 +21,6 @@ class IdempotencyRequestModel(Base):
     request_hash = Column(String,nullable=False)
     status = Column(SQLEnum(IdempotencyRequestEnum),nullable=False,server_default="PROCESSING")
     reservation_id = Column(Integer,ForeignKey('reservations.id'),nullable=True)
+    response_status=Column(Integer,nullable=True)
+    error_detail=Column(String,nullable=True)
     created_at = Column(DateTime(timezone=True),nullable=False,server_default=func.now())

@@ -1,8 +1,9 @@
 from datetime import date
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Header
 from sqlalchemy.orm import Session
 from starlette import status
+
 
 from app.dependencies.get_current_user import get_current_user
 from app.dependencies.get_db import get_db
@@ -15,8 +16,8 @@ from app.services.reservation_service import create_reservation_service, confirm
 router = APIRouter(prefix="/reservations", tags=["reservations"])
 
 @router.post("/create",response_model=ReservationResponse,status_code=status.HTTP_201_CREATED)
-def create_reservation(reservation_data: ReservationCreate,current_user:UserModel = Depends(get_current_user),db: Session = Depends(get_db)):
-    return create_reservation_service(reservation_data.event_seat_id,db,current_user)
+def create_reservation(reservation_data: ReservationCreate,idempotency_key: str = Header(...,alias="Idempotency-Key"),current_user:UserModel = Depends(get_current_user),db: Session = Depends(get_db)):
+    return create_reservation_service(idempotency_key,reservation_data.event_seat_id,db,current_user)
 
 
 @router.post("/{reservation_id}/confirm",response_model=ReservationResponse,status_code=status.HTTP_200_OK)
