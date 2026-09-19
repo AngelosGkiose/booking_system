@@ -6,3 +6,4 @@ from app.models.eventseat import EventSeatModel
 from app.models.reservation import ReservationModel
 from app.models.refresh_token import RefreshTokenModel
 from app.models.idempotencyrequest import IdempotencyRequestModel
+from app.models.outbox_event import OutboxEventModel

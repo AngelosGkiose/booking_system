@@ -4,9 +4,9 @@ from zoneinfo import ZoneInfo
 import pytest
 from fastapi import HTTPException
 
-from app.database import SessionLocal
+
 from app.models import (
-    UserModel,
+
     VenueModel,
     SeatModel,
     EventModel,
@@ -15,6 +15,11 @@ from app.models import (
 )
 from app.models.eventseat import EventSeatStatus
 from app.models.idempotencyrequest import IdempotencyRequestEnum
+
+from threading import Thread, Barrier
+
+from app.database import SessionLocal
+from app.models import ReservationModel, UserModel
 from app.services.reservation_service import create_reservation_service
 
 
@@ -229,3 +234,70 @@ def test_new_key_same_seat_returns_409(
 
     assert exc.value.status_code == 409
     assert exc.value.detail == "Event seat is not available"
+
+
+
+def test_concurrent_same_idempotency_key_creates_one_reservation(
+    reservation_test_data,
+):
+    user = reservation_test_data["user"]
+    event_seat = reservation_test_data["event_seat_1"]
+
+    user_id = user.id
+    event_seat_id = event_seat.id
+
+    barrier = Barrier(2)
+    results = []
+    errors = []
+
+    def make_reservation():
+        db = SessionLocal()
+
+        try:
+            current_user = (
+                db.query(UserModel)
+                .filter(UserModel.id == user_id)
+                .first()
+            )
+
+            barrier.wait()
+
+            reservation = create_reservation_service(
+                key="same-concurrent-key",
+                event_seat_id=event_seat_id,
+                db=db,
+                current_user=current_user,
+            )
+
+            results.append(reservation.id)
+
+        except Exception as exc:
+            errors.append(exc)
+
+        finally:
+            db.close()
+
+    thread_1 = Thread(target=make_reservation)
+    thread_2 = Thread(target=make_reservation)
+
+    thread_1.start()
+    thread_2.start()
+
+    thread_1.join()
+    thread_2.join()
+
+    db = reservation_test_data["db"]
+
+    reservations = (
+        db.query(ReservationModel)
+        .filter(
+            ReservationModel.event_seat_id == event_seat_id
+        )
+        .all()
+    )
+
+    assert len(reservations) == 1
+    assert len(errors) == 0
+
+    assert len(results) == 2
+    assert results[0] == results[1]
