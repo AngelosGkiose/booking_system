@@ -2,15 +2,16 @@ from datetime import datetime
 from math import ceil
 from zoneinfo import ZoneInfo
 
-from rq import Retry
+
 from fastapi import HTTPException
 from starlette import status
 
 from app.models.idempotencyrequest import IdempotencyRequestEnum
-from app.queue import reservation_queue
-from app.models import ReservationModel
+
+from app.models import ReservationModel, OutboxEventModel
 from app.models.eventseat import EventSeatStatus
 from app.models.reservation import ReservationStatus
+from app.repositories.outbox_event_repository import create_outbox_event_repo
 from app.repositories.reservation_repository import get_event_seat_for_update, add_reservation, \
     get_reservation_for_update, get_reservation_by_id_for_update, get_expired_pending_reservations_for_update, \
     get_user_reservations_repo, count_user_reservations_repo, get_user_reservation_by_id_repo, \
@@ -44,6 +45,7 @@ def create_reservation_service(key,event_seat_id,db,current_user):
         reservation=ReservationModel(user_id=current_user.id,event_seat_id=event_seat.id)
         add_reservation(reservation,db)
         event_seat.status=EventSeatStatus.HELD
+        create_outbox_event_repo(OutboxEventModel(event_type="RESERVATION_CREATED",payload = {"reservation_id": reservation.id,"expires_at": reservation.expires_at.isoformat()}),db)
         mark_idempotency_completed(idempotency_request, reservation.id, 201, db)
         db.commit()
         logger.info("Reservation %s created",reservation.id)
@@ -54,11 +56,6 @@ def create_reservation_service(key,event_seat_id,db,current_user):
         db.rollback()
         logger.exception("Failed to create reservation")
         raise
-    try:
-        from app.jobs.reservation_jobs import expire_reservation_job
-        reservation_queue.enqueue_at(reservation.expires_at, expire_reservation_job, reservation.id,retry=Retry(max=3,interval=[10,30,60]))
-    except Exception :
-        logger.exception("Failed to schedule reservation expiration job")
     return reservation
 
 
@@ -166,21 +163,27 @@ def expire_reservation_background_service(reservation_id, db):
         reservation = get_reservation_by_id_for_update(reservation_id, db)
         if not reservation:
             logger.debug("Reservation %s not found", reservation_id)
-            return
+            return None
         if reservation.status != ReservationStatus.PENDING:
             logger.debug("Skipping reservation %s because status is %s",reservation.id,reservation.status)
-            return
+            return None
         if reservation.expires_at > datetime.now(ZoneInfo("Europe/Athens")):
+            logger.info(
+                "Reservation %s executed too early, reschedule at %s",
+                reservation.id,
+                reservation.expires_at
+            )
             logger.debug(f"Reservation: {reservation_id} has not expired yet")
-            return
+            return reservation.expires_at
         event_seat = get_event_seat_for_update(reservation.event_seat_id, db)
         if event_seat.status != EventSeatStatus.HELD:
             logger.warning(f"Event seat {event_seat.id} not held")
-            return
+            return None
         reservation.status = ReservationStatus.EXPIRED
         event_seat.status = EventSeatStatus.AVAILABLE
         db.commit()
         logger.info("Reservation: %s got expired",reservation.id)
+        return None
     except Exception:
         db.rollback()
         logger.exception("Failed to expire reservation")
