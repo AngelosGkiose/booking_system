@@ -7,5 +7,5 @@ def create_outbox_event_repo(outbox_event,db):
     return outbox_event
 
 
-def get_unprocessed_outbox_events_repo(db):
-    return db.query(OutboxEventModel).filter(OutboxEventModel.processed_at.is_(None)).order_by(OutboxEventModel.created_at).with_for_update(skip_locked=True).all()
+def get_unprocessed_outbox_events_repo(db,limit=100):
+    return db.query(OutboxEventModel).filter(OutboxEventModel.processed_at.is_(None)).order_by(OutboxEventModel.created_at).limit(limit).with_for_update(skip_locked=True).all()
