@@ -11,4 +11,7 @@ class OutboxEventModel(Base):
     payload = Column(JSONB,nullable=False)
     processed_at = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime(timezone=True),nullable=False,server_default=func.now())
-
+    attempt_count = Column(Integer,nullable=False,server_default="0")
+    last_error= Column(String,nullable=True)
+    next_attempt_at = Column(DateTime(timezone=True), nullable=True)
+    failed_at=Column(DateTime(timezone=True),nullable=True)
