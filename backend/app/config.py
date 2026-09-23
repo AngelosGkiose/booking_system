@@ -12,6 +12,8 @@ class Settings(BaseSettings):
     algorithm:str
     expiration_time: int
     refresh_token_expiration_days:int
+    redis_host:str
+    redis_port:int
     model_config = SettingsConfigDict(
         env_file=BASE_DIR / ".env",
         env_file_encoding="utf-8",

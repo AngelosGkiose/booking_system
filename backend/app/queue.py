@@ -2,10 +2,11 @@ from redis import Redis
 from redis.retry import Retry as RedisRetry
 from redis.backoff import NoBackoff
 from rq import Queue
+from config import settings
 
 redis_connection = Redis(
-    host="localhost",
-    port=6379,
+    host=settings.REDIS_HOST,
+    port=settings.REDIS_PORT,
     socket_connect_timeout=3,
     socket_timeout=3,
     retry=RedisRetry(
