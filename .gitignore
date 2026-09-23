@@ -27,4 +27,4 @@ Thumbs.db
 
 AGENTS.md
 CODEX_CONTEXT.md
-.env.docker
+backend/.env.docker
