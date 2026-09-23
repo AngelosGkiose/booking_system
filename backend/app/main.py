@@ -7,11 +7,13 @@ from starlette import status
 from app.dependencies.get_db import get_db
 from app.routers.reservations import router as reservations_router
 from app.routers.auth import router as auth
+from app.routers.monitoring import router as monitoring_router
 
 app = FastAPI()
 
 app.include_router(reservations_router)
 app.include_router(auth)
+app.include_router(monitoring_router)
 
 @app.get("/health")
 def health_check():

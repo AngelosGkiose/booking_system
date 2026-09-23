@@ -25,6 +25,12 @@ def mark_outbox_event_failed_attempt(outbox_event, error_message, max_attempts, 
     outbox_event.last_error = error_message
 
     if outbox_event.attempt_count >= max_attempts:
+        logger.error(
+            "Outbox event %s permanently failed after %s attempts: %s",
+            outbox_event.id,
+            outbox_event.attempt_count,
+            outbox_event.last_error
+        )
         outbox_event.failed_at = now
         outbox_event.next_attempt_at = None
     else:

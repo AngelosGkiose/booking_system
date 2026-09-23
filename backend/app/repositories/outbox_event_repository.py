@@ -49,3 +49,7 @@ def get_outbox_event_for_update_repo(event_id, db):
         .with_for_update(skip_locked=True)
         .first()
     )
+
+
+def get_failed_outbox_events_count_repo(db):
+    return db.query(OutboxEventModel).filter(OutboxEventModel.failed_at.is_not(None)).count()
