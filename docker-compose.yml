@@ -80,6 +80,17 @@ services:
       redis:
         condition: service_healthy
     command: python -m app.jobs.schedule_jobs
+  tests:
+    image: booking_backend
+    container_name: booking_tests
+    env_file:
+      - ./backend/.env.docker
+    depends_on:
+      alembic_migration:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    command: python -m pytest tests/integration
 volumes:
   postgres_data:
   redis_data:
