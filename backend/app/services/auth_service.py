@@ -43,12 +43,12 @@ def authenticate_user(email, password, db):
 def refresh_access_token_service(refresh_token: str, db):
     user_id, jti = decode_refresh_token(refresh_token)
     refresh_token_record = get_user_refresh_token_for_update(user_id, jti, db)
-    user = get_user_by_id(user_id, db)
     if not refresh_token_record:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Could not validate refresh token",
         )
+    user = get_user_by_id(user_id, db)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
