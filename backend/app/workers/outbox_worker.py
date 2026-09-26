@@ -1,12 +1,14 @@
 import logging
+from time import sleep
 
 from app.database import SessionLocal
 from app.logging_config import configure_logging
 from app.services.outbox_event_service import publish_outbox_events_service
-from time import sleep
 
 configure_logging()
 logger = logging.getLogger(__name__)
+
+
 def run_worker():
     logger.info("Outbox publisher worker started")
     while True:

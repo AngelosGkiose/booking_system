@@ -8,8 +8,9 @@ from app.models.reservation import ReservationStatus
 class ReservationCreate(BaseModel):
     event_seat_id: int
 
+
 class ReservationResponse(BaseModel):
-    id:int
+    id: int
     user_id: int
     event_seat_id: int
     status: ReservationStatus
@@ -18,11 +19,12 @@ class ReservationResponse(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
+
 class ReservationPage(BaseModel):
     items: list[ReservationResponse]
     total_items: int
     page: int
     limit: int
-    total_pages:int
+    total_pages: int
     has_next: bool
     has_previous: bool

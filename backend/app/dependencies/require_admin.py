@@ -1,4 +1,4 @@
-from fastapi import HTTPException, Depends
+from fastapi import Depends, HTTPException
 from starlette import status
 
 from app.dependencies.get_current_user import get_current_user

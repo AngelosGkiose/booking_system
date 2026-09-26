@@ -1,19 +1,19 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from types import SimpleNamespace
 from unittest.mock import MagicMock
 
 import pytest
 from fastapi import HTTPException
 
-import app.services.reservation_service as reservation_service
+from app.services import reservation_service
 
 
 def test_get_user_reservations_rejects_invalid_date_range():
     db = MagicMock()
     current_user = SimpleNamespace(id=1)
 
-    date_from = datetime(2026, 9, 20)
-    date_to = datetime(2026, 9, 10)
+    date_from = datetime(2026, 9, 21, tzinfo=timezone.utc)
+    date_to = datetime(2026, 9, 20, tzinfo=timezone.utc)
 
     with pytest.raises(HTTPException) as exc:
         reservation_service.get_user_reservations_service(
@@ -26,7 +26,7 @@ def test_get_user_reservations_rejects_invalid_date_range():
             page=1,
             limit=10,
             current_user=current_user,
-            db=db
+            db=db,
         )
 
     assert exc.value.status_code == 400
@@ -48,7 +48,7 @@ def test_get_user_reservations_rejects_invalid_sort_by():
             page=1,
             limit=10,
             current_user=current_user,
-            db=db
+            db=db,
         )
 
     assert exc.value.status_code == 400
@@ -70,7 +70,7 @@ def test_get_user_reservations_rejects_invalid_order():
             page=1,
             limit=10,
             current_user=current_user,
-            db=db
+            db=db,
         )
 
     assert exc.value.status_code == 400
@@ -81,21 +81,16 @@ def test_get_user_reservations_returns_correct_pagination(monkeypatch):
     db = MagicMock()
     current_user = SimpleNamespace(id=5)
 
-    reservations = [
-        SimpleNamespace(id=1),
-        SimpleNamespace(id=2)
-    ]
+    reservations = [SimpleNamespace(id=1), SimpleNamespace(id=2)]
 
     monkeypatch.setattr(
-        reservation_service,
-        "count_user_reservations_repo",
-        lambda *args, **kwargs: 25
+        reservation_service, "count_user_reservations_repo", lambda *args, **kwargs: 25
     )
 
     monkeypatch.setattr(
         reservation_service,
         "get_user_reservations_repo",
-        lambda *args, **kwargs: reservations
+        lambda *args, **kwargs: reservations,
     )
 
     result = reservation_service.get_user_reservations_service(
@@ -108,7 +103,7 @@ def test_get_user_reservations_returns_correct_pagination(monkeypatch):
         page=2,
         limit=10,
         current_user=current_user,
-        db=db
+        db=db,
     )
 
     assert result["items"] == reservations

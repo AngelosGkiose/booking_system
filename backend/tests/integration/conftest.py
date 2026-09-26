@@ -6,13 +6,20 @@ from app.database import SessionLocal
 
 @pytest.fixture(autouse=True)
 def clean_db():
-    db=SessionLocal()
+    db = SessionLocal()
     try:
-        db.execute(text("TRUNCATE TABLE users,reservations,venues,seats,events,event_seats,idempotency_requests Restart IDENTITY CASCADE"))
+        db.execute(
+            text(
+                "TRUNCATE TABLE users,reservations,venues,seats,events,event_seats,idempotency_requests Restart IDENTITY CASCADE"
+            )
+        )
         db.commit()
         yield
-        db.query(text("TRUNCATE TABLE users,reservations,venues,seats,events,event_seats,idempotency_requests Restart IDENTITY CASCADE"))
+        db.query(
+            text(
+                "TRUNCATE TABLE users,reservations,venues,seats,events,event_seats,idempotency_requests Restart IDENTITY CASCADE"
+            )
+        )
         db.commit()
     finally:
         db.close()
-

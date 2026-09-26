@@ -1,12 +1,13 @@
 from datetime import datetime
 
-from pydantic import BaseModel, EmailStr, ConfigDict,field_validator
+from pydantic import BaseModel, ConfigDict, EmailStr, field_validator
 
 
 class TokenResponse(BaseModel):
     access_token: str
     refresh_token: str
     token_type: str
+
 
 class RegisterRequest(BaseModel):
     email: EmailStr
@@ -32,7 +33,6 @@ class RegisterRequest(BaseModel):
         return password
 
 
-
 class UserResponse(BaseModel):
     id: int
     email: EmailStr
@@ -41,11 +41,14 @@ class UserResponse(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
+
 class RefreshTokenRequest(BaseModel):
     refresh_token: str
 
+
 class LogOutRequest(BaseModel):
     refresh_token: str
+
 
 class SessionResponse(BaseModel):
     id: int

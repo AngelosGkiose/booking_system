@@ -5,6 +5,35 @@ on:
   pull_request:
 
 jobs:
+
+  linting-check:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: ./backend
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+
+      - name: Install  dependencies
+        run:  pip install -r requirements.txt
+
+      - name: Run ruff
+        run: ruff check .
+
+      - name: Check formatting
+        run: ruff format --check .
+
+
+
+
   docker-build:
     runs-on: ubuntu-latest
 
@@ -13,17 +42,10 @@ jobs:
 
       - name: Build backend image
         run: docker build -t booking_backend ./backend
-        
+
   unit-tests:
     runs-on: ubuntu-latest
-    env:
-      DATABASE_URL: postgresql+psycopg://testuser:testpassword@localhost:5432/booking_test
-      SECRET_KEY: test-secret-key
-      ALGORITHM: HS256
-      EXPIRATION_TIME: 30
-      REFRESH_TOKEN_EXPIRATION_DAYS: 7
-      REDIS_HOST: localhost
-      REDIS_PORT: 6379
+
     defaults:
       run:
         working-directory: ./backend
@@ -98,5 +120,5 @@ jobs:
       - name: Run migrations
         run: alembic upgrade head
 
-      - name: Run integration tests
-        run: python -m pytest tests/integration
+      - name: Run tests with coverage
+        run: python -m pytest tests --cov=app --cov-report=term-missing --cov-fail-under=75

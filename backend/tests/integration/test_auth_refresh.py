@@ -9,7 +9,11 @@ from app.database import SessionLocal
 from app.main import app
 from app.models import UserModel
 from app.repositories.refresh_token_repository import get_user_refresh_token
-from app.security.jwt import create_access_token, create_refresh_token, decode_refresh_token
+from app.security.jwt import (
+    create_access_token,
+    create_refresh_token,
+    decode_refresh_token,
+)
 from app.services.auth_service import create_refresh_token_service
 
 client = TestClient(app)
@@ -54,9 +58,18 @@ def test_refresh_rejects_expired_refresh_token():
         db.add(user)
         db.commit()
         db.refresh(user)
-        payload = {"sub": str(user.id), "type": "refresh", "jti": str(uuid4()), "exp": datetime.now(timezone.utc) - timedelta(minutes=1)}
-        expired_refresh_token = jwt.encode(payload, settings.secret_key, algorithm=settings.algorithm)
-        response = client.post("/auth/refresh", json={"refresh_token": expired_refresh_token})
+        payload = {
+            "sub": str(user.id),
+            "type": "refresh",
+            "jti": str(uuid4()),
+            "exp": datetime.now(timezone.utc) - timedelta(minutes=1),
+        }
+        expired_refresh_token = jwt.encode(
+            payload, settings.secret_key, algorithm=settings.algorithm
+        )
+        response = client.post(
+            "/auth/refresh", json={"refresh_token": expired_refresh_token}
+        )
         assert response.status_code == 401
     finally:
         db.close()
@@ -82,15 +95,20 @@ def test_refresh_token_rotation_revokes_old_token():
         db.commit()
         db.refresh(user)
         old_refresh_token = create_refresh_token_service(user.id, db)
-        response_1 = client.post("/auth/refresh", json={"refresh_token": old_refresh_token})
+        response_1 = client.post(
+            "/auth/refresh", json={"refresh_token": old_refresh_token}
+        )
         assert response_1.status_code == 200
         data = response_1.json()
         new_refresh_token = data["refresh_token"]
         assert new_refresh_token != old_refresh_token
-        response_2 = client.post("/auth/refresh", json={"refresh_token": old_refresh_token})
+        response_2 = client.post(
+            "/auth/refresh", json={"refresh_token": old_refresh_token}
+        )
         assert response_2.status_code == 401
     finally:
         db.close()
+
 
 def test_new_refresh_token_can_be_used():
     db = SessionLocal()
@@ -100,15 +118,20 @@ def test_new_refresh_token_can_be_used():
         db.commit()
         db.refresh(user)
         old_refresh_token = create_refresh_token_service(user.id, db)
-        response_1 = client.post("/auth/refresh", json={"refresh_token": old_refresh_token})
+        response_1 = client.post(
+            "/auth/refresh", json={"refresh_token": old_refresh_token}
+        )
         assert response_1.status_code == 200
         new_refresh_token = response_1.json()["refresh_token"]
-        response_2 = client.post("/auth/refresh", json={"refresh_token": new_refresh_token})
+        response_2 = client.post(
+            "/auth/refresh", json={"refresh_token": new_refresh_token}
+        )
         assert response_2.status_code == 200
         assert "access_token" in response_2.json()
         assert "refresh_token" in response_2.json()
     finally:
         db.close()
+
 
 def test_rotation_sets_revoked_at_on_old_token():
     db = SessionLocal()
@@ -119,7 +142,9 @@ def test_rotation_sets_revoked_at_on_old_token():
         db.refresh(user)
         old_refresh_token = create_refresh_token_service(user.id, db)
         user_id, old_jti = decode_refresh_token(old_refresh_token)
-        response = client.post("/auth/refresh", json={"refresh_token": old_refresh_token})
+        response = client.post(
+            "/auth/refresh", json={"refresh_token": old_refresh_token}
+        )
         assert response.status_code == 200
         db.expire_all()
         old_token_record = get_user_refresh_token(user_id, old_jti, db)
@@ -128,6 +153,7 @@ def test_rotation_sets_revoked_at_on_old_token():
     finally:
         db.close()
 
+
 def test_refresh_rejects_token_without_jti():
     db = SessionLocal()
     try:
@@ -135,8 +161,14 @@ def test_refresh_rejects_token_without_jti():
         db.add(user)
         db.commit()
         db.refresh(user)
-        payload = {"sub": str(user.id), "type": "refresh", "exp": datetime.now(timezone.utc) + timedelta(days=1)}
-        refresh_token = jwt.encode(payload, settings.secret_key, algorithm=settings.algorithm)
+        payload = {
+            "sub": str(user.id),
+            "type": "refresh",
+            "exp": datetime.now(timezone.utc) + timedelta(days=1),
+        }
+        refresh_token = jwt.encode(
+            payload, settings.secret_key, algorithm=settings.algorithm
+        )
         response = client.post("/auth/refresh", json={"refresh_token": refresh_token})
         assert response.status_code == 401
     finally:

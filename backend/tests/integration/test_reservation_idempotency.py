@@ -1,25 +1,22 @@
 from datetime import datetime, timedelta
+from threading import Barrier, Thread
 from zoneinfo import ZoneInfo
 
 import pytest
 from fastapi import HTTPException
 
-
+from app.database import SessionLocal
 from app.models import (
-
-    VenueModel,
-    SeatModel,
     EventModel,
     EventSeatModel,
     IdempotencyRequestModel,
+    ReservationModel,
+    SeatModel,
+    UserModel,
+    VenueModel,
 )
 from app.models.eventseat import EventSeatStatus
 from app.models.idempotencyrequest import IdempotencyRequestEnum
-
-from threading import Thread, Barrier
-
-from app.database import SessionLocal
-from app.models import ReservationModel, UserModel
 from app.services.reservation_service import create_reservation_service
 
 
@@ -61,10 +58,7 @@ def reservation_test_data():
         db.add_all([seat_1, seat_2])
         db.flush()
 
-        start_time = (
-            datetime.now(ZoneInfo("Europe/Athens"))
-            + timedelta(days=1)
-        )
+        start_time = datetime.now(ZoneInfo("Europe/Athens")) + timedelta(days=1)
 
         event = EventModel(
             venue_id=venue.id,
@@ -136,10 +130,7 @@ def test_first_request_creates_reservation(reservation_test_data):
     )
 
     assert idempotency_request is not None
-    assert (
-        idempotency_request.status
-        == IdempotencyRequestEnum.COMPLETED
-    )
+    assert idempotency_request.status == IdempotencyRequestEnum.COMPLETED
     assert idempotency_request.reservation_id == reservation.id
     assert idempotency_request.response_status == 201
 
@@ -169,9 +160,7 @@ def test_same_key_same_request_returns_same_reservation(
 
     reservation_count = (
         db.query(type(first_reservation))
-        .filter(
-            type(first_reservation).event_seat_id == event_seat.id
-        )
+        .filter(type(first_reservation).event_seat_id == event_seat.id)
         .count()
     )
 
@@ -204,10 +193,7 @@ def test_same_key_different_request_returns_409(
 
     assert exc.value.status_code == 409
 
-    assert (
-        exc.value.detail
-        == "Idempotency key already used with different request"
-    )
+    assert exc.value.detail == "Idempotency key already used with different request"
 
 
 def test_new_key_same_seat_returns_409(
@@ -236,7 +222,6 @@ def test_new_key_same_seat_returns_409(
     assert exc.value.detail == "Event seat is not available"
 
 
-
 def test_concurrent_same_idempotency_key_creates_one_reservation(
     reservation_test_data,
 ):
@@ -254,11 +239,7 @@ def test_concurrent_same_idempotency_key_creates_one_reservation(
         db = SessionLocal()
 
         try:
-            current_user = (
-                db.query(UserModel)
-                .filter(UserModel.id == user_id)
-                .first()
-            )
+            current_user = db.query(UserModel).filter(UserModel.id == user_id).first()
 
             barrier.wait()
 
@@ -290,9 +271,7 @@ def test_concurrent_same_idempotency_key_creates_one_reservation(
 
     reservations = (
         db.query(ReservationModel)
-        .filter(
-            ReservationModel.event_seat_id == event_seat_id
-        )
+        .filter(ReservationModel.event_seat_id == event_seat_id)
         .all()
     )
 

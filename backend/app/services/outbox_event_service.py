@@ -1,20 +1,26 @@
 import logging
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta, timezone
 
+from redis import RedisError
 from rq import Retry
 
 from app.database import SessionLocal
 from app.jobs.reservation_jobs import expire_reservation_job
 from app.logging_config import configure_logging
 from app.queue import reservation_queue
-from app.repositories.outbox_event_repository import get_unprocessed_outbox_event_ids_repo, \
-    get_outbox_event_for_update_repo
+from app.repositories.outbox_event_repository import (
+    get_outbox_event_for_update_repo,
+    get_unprocessed_outbox_event_ids_repo,
+)
+
 configure_logging()
 logger = logging.getLogger(__name__)
 MAX_OUTBOX_ATTEMPTS = 10
+
+
 def publish_outbox_events_service(db):
-    candidate_ids  = get_unprocessed_outbox_event_ids_repo(db)
-    for event_id  in candidate_ids:
+    candidate_ids = get_unprocessed_outbox_event_ids_repo(db)
+    for event_id in candidate_ids:
         process_one_outbox_event(event_id)
 
 
@@ -29,7 +35,7 @@ def mark_outbox_event_failed_attempt(outbox_event, error_message, max_attempts, 
             "Outbox event %s permanently failed after %s attempts: %s",
             outbox_event.id,
             outbox_event.attempt_count,
-            outbox_event.last_error
+            outbox_event.last_error,
         )
         outbox_event.failed_at = now
         outbox_event.next_attempt_at = None
@@ -49,10 +55,11 @@ def mark_outbox_event_failed_attempt(outbox_event, error_message, max_attempts, 
 
     return outbox_event
 
+
 def process_one_outbox_event(event_id):
-    db=SessionLocal()
+    db = SessionLocal()
     try:
-        event=get_outbox_event_for_update_repo(event_id,db)
+        event = get_outbox_event_for_update_repo(event_id, db)
         if not event:
             return
         try:
@@ -63,23 +70,31 @@ def process_one_outbox_event(event_id):
             expires_at = datetime.fromisoformat(expires_at_str)
             now = datetime.now(timezone.utc)
             if expires_at <= now:
-                reservation_queue.enqueue(expire_reservation_job, reservation_id, retry=Retry(max=3, interval=[10, 30, 60]))
+                reservation_queue.enqueue(
+                    expire_reservation_job,
+                    reservation_id,
+                    retry=Retry(max=3, interval=[10, 30, 60]),
+                )
             else:
                 logger.info(
                     "Publishing outbox event %s attempt=%s",
                     event.id,
-                    event.attempt_count
+                    event.attempt_count,
                 )
-                reservation_queue.enqueue_at(expires_at, expire_reservation_job, reservation_id,
-                                             retry=Retry(max=3, interval=[10, 30, 60]))
-        except Exception as exc:
-            mark_outbox_event_failed_attempt(event,str(exc),MAX_OUTBOX_ATTEMPTS,db)
+                reservation_queue.enqueue_at(
+                    expires_at,
+                    expire_reservation_job,
+                    reservation_id,
+                    retry=Retry(max=3, interval=[10, 30, 60]),
+                )
+        except (ValueError, RedisError) as exc:
+            mark_outbox_event_failed_attempt(event, str(exc), MAX_OUTBOX_ATTEMPTS, db)
             db.commit()
             return
         event.processed_at = datetime.now(timezone.utc)
         event.last_error = None
         db.commit()
-    except Exception :
+    except Exception:
         db.rollback()
         raise
     finally:
