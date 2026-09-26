@@ -1,7 +1,13 @@
+permissions:
+  contents: read
+  packages: write
+
 name: CI
 
 on:
   push:
+    branches:
+      - main
   pull_request:
 
 jobs:
@@ -32,16 +38,42 @@ jobs:
         run: ruff format --check .
 
 
-
-
   docker-build:
     runs-on: ubuntu-latest
 
-    steps:
-      - uses: actions/checkout@v4
+    needs:
+      - linting-check
+      - unit-tests
+      - integration-tests
 
-      - name: Build backend image
-        run: docker build -t booking_backend ./backend
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Build Docker Image
+        run: | 
+          docker build \
+          -t booking-backend:${{ github.sha }} \
+          ./backend
+      - name: Login to GHCR
+        if: github.event_name=='push' && github.ref == 'refs/heads/main'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Tag Docker Image
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          docker tag booking-backend:${{ github.sha }} ghcr.io/angelosgkiose/booking-backend:${{ github.sha }}
+          docker tag booking-backend:${{ github.sha }} ghcr.io/angelosgkiose/booking-backend:latest
+
+      - name: Push Docker Image
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          docker push ghcr.io/angelosgkiose/booking-backend:${{ github.sha }}
+          docker push ghcr.io/angelosgkiose/booking-backend:latest
 
   unit-tests:
     runs-on: ubuntu-latest
@@ -54,7 +86,7 @@ jobs:
       REFRESH_TOKEN_EXPIRATION_DAYS: 7
       REDIS_HOST: localhost
       REDIS_PORT: 6379
-      
+
     defaults:
       run:
         working-directory: ./backend
