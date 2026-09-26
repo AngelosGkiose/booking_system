@@ -46,6 +46,15 @@ jobs:
   unit-tests:
     runs-on: ubuntu-latest
 
+    env:
+      DATABASE_URL: postgresql+psycopg://testuser:testpassword@localhost:5432/booking_test
+      SECRET_KEY: test-secret-key
+      ALGORITHM: HS256
+      EXPIRATION_TIME: 30
+      REFRESH_TOKEN_EXPIRATION_DAYS: 7
+      REDIS_HOST: localhost
+      REDIS_PORT: 6379
+      
     defaults:
       run:
         working-directory: ./backend
