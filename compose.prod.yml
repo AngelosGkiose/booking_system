@@ -1,0 +1,90 @@
+services:
+  postgres:
+    image: postgres:17
+    container_name: booking_db
+    env_file:
+      - .env.prod
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7
+    container_name: booking_redis
+    env_file:
+      - .env.prod
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  alembic_migration:
+    image: ghcr.io/angelosgkiose/booking-backend:${IMAGE_TAG}
+    container_name: booking_migration
+    env_file:
+      - .env.prod
+    depends_on:
+      postgres:
+        condition:  service_healthy
+    command: alembic upgrade head
+
+  api:
+    image: ghcr.io/angelosgkiose/booking-backend:${IMAGE_TAG}
+    container_name: booking_api
+    ports:
+      - "9000:8000"
+    env_file:
+      - .env.prod
+    depends_on:
+      alembic_migration:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+
+  outbox_worker:
+    image: ghcr.io/angelosgkiose/booking-backend:${IMAGE_TAG}
+    container_name: booking_outbox_worker
+    env_file:
+      - .env.prod
+    depends_on:
+      alembic_migration:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    command: python -m app.workers.outbox_worker
+
+  rq_worker:
+    image: ghcr.io/angelosgkiose/booking-backend:${IMAGE_TAG}
+    container_name: booking_rq_worker
+    env_file:
+      - .env.prod
+    depends_on:
+      alembic_migration:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    command: rq worker -w rq.worker.SimpleWorker reservations --with-scheduler
+
+  scheduler:
+    image: ghcr.io/angelosgkiose/booking-backend:${IMAGE_TAG}
+    container_name: booking_scheduler
+    env_file:
+      - .env.prod
+    depends_on:
+      redis:
+        condition: service_healthy
+    command: python -m app.jobs.schedule_jobs
+
+
+volumes:
+  postgres_data:
+  redis_data:
+
+
