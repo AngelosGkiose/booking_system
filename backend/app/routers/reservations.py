@@ -38,7 +38,7 @@ def confirm_reservation(
 
 
 @router.post(
-"/create", response_model=ReservationResponse, status_code=status.HTTP_201_CREATED
+    "/create", response_model=ReservationResponse, status_code=status.HTTP_201_CREATED
 )
 def create_reservation(
     reservation_data: ReservationCreate,

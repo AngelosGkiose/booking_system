@@ -96,4 +96,3 @@ def test_register_user_rolls_back_when_commit_fails(monkeypatch):
         )
 
     db.rollback.assert_called_once()
-    
