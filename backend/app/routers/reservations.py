@@ -25,6 +25,19 @@ router = APIRouter(prefix="/reservations", tags=["reservations"])
 
 
 @router.post(
+    "/{reservation_id}/confirm",
+    response_model=ReservationResponse,
+    status_code=status.HTTP_200_OK,
+)
+def confirm_reservation(
+    reservation_id: int,
+    current_user: UserModel = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    return confirm_reservation_service(reservation_id, db, current_user)
+
+
+@router.post(
     "/create", response_model=ReservationResponse, status_code=status.HTTP_201_CREATED
 )
 def create_reservation(
@@ -36,19 +49,6 @@ def create_reservation(
     return create_reservation_service(
         idempotency_key, reservation_data.event_seat_id, db, current_user
     )
-
-
-@router.post(
-    "/{reservation_id}/confirm",
-    response_model=ReservationResponse,
-    status_code=status.HTTP_200_OK,
-)
-def confirm_reservation(
-    reservation_id: int,
-    current_user: UserModel = Depends(get_current_user),
-    db: Session = Depends(get_db),
-):
-    return confirm_reservation_service(reservation_id, db, current_user)
 
 
 @router.post(
