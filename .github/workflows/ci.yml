@@ -186,7 +186,7 @@ jobs:
 
       - name: Deploy to server
         run: |
-          ssh -o IdentitiesOnly=yes \
+          ssh -vvv -o IdentitiesOnly=yes \
             -i ~/.ssh/booking_deploy \
             "$SERVER_USER@$SERVER_HOST" \
             "cd ~/booking_system &&
