@@ -88,6 +88,7 @@ def test_ready_returns_503_when_database_unavailable(monkeypatch):
     assert exc.value.detail == "Database not available"
 
 
+
 def test_redis_health_check_unavailable(monkeypatch):
     redis_mock = MagicMock()
     redis_mock.ping.side_effect = RedisError()
