@@ -178,15 +178,18 @@ jobs:
       - name: Configure SSH
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.SERVER_SSH_KEY  }}" > ~/.ssh/booking_deploy
+          printf '%s' "${{ secrets.SERVER_SSH_KEY }}" | tr -d '\r' > ~/.ssh/booking_deploy
           chmod 600 ~/.ssh/booking_deploy
-          ssh-keyscan -H "${{secrets.SERVER_HOST}}" >> ~/.ssh/known_hosts
+          ssh-keygen -y -f ~/.ssh/booking_deploy > /tmp/deploy.pub
+          ssh-keygen -lf /tmp/deploy.pub
+          ssh-keyscan -H "${{ secrets.SERVER_HOST }}" >> ~/.ssh/known_hosts
 
       - name: Deploy to server
         run: |
-          ssh -i ~/.ssh/booking_deploy \
+          ssh -o IdentitiesOnly=yes \
+            -i ~/.ssh/booking_deploy \
             ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} \
             "cd ~/booking_system &&
-            git pull origin main &&
-            IMAGE_TAG=${{ github.sha }} docker compose -f compose.prod.yml pull &&
-            IMAGE_TAG=${{ github.sha }} docker compose -f compose.prod.yml up -d"
+             git pull origin main &&
+             IMAGE_TAG=${{ github.sha }} docker compose -f compose.prod.yml pull &&
+             IMAGE_TAG=${{ github.sha }} docker compose -f compose.prod.yml up -d"
