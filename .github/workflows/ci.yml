@@ -190,6 +190,6 @@ jobs:
             -i ~/.ssh/booking_deploy \
             "$SERVER_USER@$SERVER_HOST" \
             "cd ~/booking_system &&
-            git pull origin main &&
-            IMAGE_TAG=${{ github.sha }} docker compose -f compose.prod.yml pull &&
-            IMAGE_TAG=${{ github.sha }} docker compose -f compose.prod.yml up -d"
+             git pull origin main &&
+             IMAGE_TAG=${{ github.sha }} docker compose -f compose.prod.yml pull &&
+             IMAGE_TAG=${{ github.sha }} docker compose -f compose.prod.yml up -d"
