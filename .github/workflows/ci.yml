@@ -184,9 +184,10 @@ jobs:
 
       - name: Deploy to server
         run: |
-          ssh -i ~/.ssh/booking_deploy \
-            ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} \
+          ssh -vvv -o IdentitiesOnly=yes \
+            -i ~/.ssh/booking_deploy \
+            "$SERVER_USER@$SERVER_HOST" \
             "cd ~/booking_system &&
-            git pull origin main &&
-            IMAGE_TAG=${{ github.sha }} docker compose -f compose.prod.yml pull &&
-            IMAGE_TAG=${{ github.sha }} docker compose -f compose.prod.yml up -d"
+             git pull origin main &&
+             IMAGE_TAG=${{ github.sha }} docker compose -f compose.prod.yml pull &&
+             IMAGE_TAG=${{ github.sha }} docker compose -f compose.prod.yml up -d"
