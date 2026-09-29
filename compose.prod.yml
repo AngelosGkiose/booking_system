@@ -41,8 +41,6 @@ services:
     image: ghcr.io/angelosgkiose/booking-backend:${IMAGE_TAG}
     container_name: booking_api
     restart: unless-stopped
-    ports:
-      - "9000:8000"
     env_file:
       - .env.prod
     depends_on:
@@ -87,6 +85,16 @@ services:
         condition: service_healthy
     command: python -m app.jobs.schedule_jobs
 
+  nginx:
+    image: nginx:alpine
+    container_name: booking_nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - api
 
 volumes:
   postgres_data:
