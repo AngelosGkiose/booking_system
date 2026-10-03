@@ -173,14 +173,16 @@ jobs:
     needs:
       - docker-build
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-
+    env:
+      SERVER_HOST: ${{ secrets.SERVER_HOST }}
+      SERVER_USER: ${{ secrets.SERVER_USER }}
     steps:
       - name: Configure SSH
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.SERVER_SSH_KEY  }}" > ~/.ssh/booking_deploy
+          printf '%s\n' "${{ secrets.SERVER_SSH_KEY }}" > ~/.ssh/booking_deploy
           chmod 600 ~/.ssh/booking_deploy
-          ssh-keyscan -H "${{secrets.SERVER_HOST}}" >> ~/.ssh/known_hosts
+          ssh-keyscan -H "${{ secrets.SERVER_HOST }}" >> ~/.ssh/known_hosts
 
       - name: Deploy to server
         run: |
