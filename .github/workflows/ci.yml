@@ -198,7 +198,7 @@ jobs:
             --zone="europe-west4-b" \
             --tunnel-through-iap \
             --command="
-              sudo -u aggelosgkiose bash -lc '
+              exec sudo -u aggelosgkiose bash -lc '
                 set -e
 
                 cd /opt/booking_system
@@ -277,8 +277,4 @@ jobs:
                 echo \"CRITICAL: Rollback health verification also failed\"
                 exit 1
               '
-
-              REMOTE_STATUS=\$?
-              echo \"Remote deploy exit code: \$REMOTE_STATUS\"
-              exit \$REMOTE_STATUS
             "
