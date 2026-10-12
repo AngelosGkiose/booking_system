@@ -190,91 +190,32 @@ jobs:
 
       - name: Setup Google Cloud CLI
         uses: google-github-actions/setup-gcloud@v3
-      - name: Deploy to server
+      - name: Diagnose SSH exit status
         run: |
+          set +e
+
+          echo "=== Test 1: Simple SSH command ==="
+
           gcloud compute ssh booking-server \
             --quiet \
             --project="project-30242ad4-f1de-40bb-9e1" \
             --zone="europe-west4-b" \
             --tunnel-through-iap \
-            --command="
-              exec sudo -u aggelosgkiose bash -lc '
-                set -e
+            --command="echo SSH_OK; exit 0"
 
-                cd /opt/booking_system
+          SSH_STATUS=$?
+          echo "Simple SSH exit code: $SSH_STATUS"
 
-                CURRENT_IMAGE=\$(docker inspect booking_api --format \"{{.Config.Image}}\")
-                PREVIOUS_TAG=\${CURRENT_IMAGE##*:}
+          echo "=== Test 2: SSH with sudo and bash ==="
 
-                echo \"Current production image: \$PREVIOUS_TAG\"
-                echo \"Deploying new image: ${{ github.sha }}\"
+          gcloud compute ssh booking-server \
+            --quiet \
+            --project="project-30242ad4-f1de-40bb-9e1" \
+            --zone="europe-west4-b" \
+            --tunnel-through-iap \
+            --command="exec sudo -u aggelosgkiose bash -lc 'echo INNER_OK; exit 0'"
 
-                git pull origin main
+          SUDO_STATUS=$?
+          echo "SSH + sudo exit code: $SUDO_STATUS"
 
-                IMAGE_TAG=${{ github.sha }} docker compose -f compose.prod.yml pull
-                IMAGE_TAG=${{ github.sha }} docker compose -f compose.prod.yml up -d
-
-                docker exec booking_nginx nginx -t
-                docker exec booking_nginx nginx -s reload
-
-                echo \"Checking application health...\"
-
-                HEALTHY=false
-
-                for i in {1..10}; do
-                  if curl --fail --silent --show-error \
-                    --max-time 5 \
-                    https://api.aggelosgkiose.dev/health/ready; then
-
-                    echo
-                    echo \"Deployment health check passed\"
-                    HEALTHY=true
-                    break
-                  fi
-
-                  echo \"Health check attempt \$i failed. Retrying...\"
-                  sleep 3
-                done
-
-                if [ \"\$HEALTHY\" = \"true\" ]; then
-                  echo \"Deployment completed successfully\"
-                  exit 0
-                fi
-
-                echo \"New deployment failed health verification\"
-                echo \"Rolling back to \$PREVIOUS_TAG...\"
-
-                IMAGE_TAG=\$PREVIOUS_TAG docker compose -f compose.prod.yml pull
-                IMAGE_TAG=\$PREVIOUS_TAG docker compose -f compose.prod.yml up -d
-
-                docker exec booking_nginx nginx -t
-                docker exec booking_nginx nginx -s reload
-
-                echo \"Checking application health after rollback...\"
-
-                ROLLBACK_HEALTHY=false
-
-                for i in {1..10}; do
-                  if curl --fail --silent --show-error \
-                    --max-time 5 \
-                    https://api.aggelosgkiose.dev/health/ready; then
-
-                    echo
-                    echo \"Rollback successful. Previous version is healthy.\"
-                    ROLLBACK_HEALTHY=true
-                    break
-                  fi
-
-                  echo \"Rollback health check attempt \$i failed. Retrying...\"
-                  sleep 3
-                done
-
-                if [ \"\$ROLLBACK_HEALTHY\" = \"true\" ]; then
-                  echo \"New deployment failed, but rollback succeeded\"
-                  exit 1
-                fi
-
-                echo \"CRITICAL: Rollback health verification also failed\"
-                exit 1
-              '
-            "
+          exit 0
