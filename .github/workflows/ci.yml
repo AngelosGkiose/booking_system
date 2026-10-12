@@ -218,18 +218,27 @@ jobs:
 
                 echo \"Checking application health...\"
 
+                HEALTHY=false
+
                 for i in {1..10}; do
                   if curl --fail --silent --show-error \
                     --max-time 5 \
                     https://api.aggelosgkiose.dev/health/ready; then
+
                     echo
                     echo \"Deployment health check passed\"
-                    exit 0
+                    HEALTHY=true
+                    break
                   fi
 
                   echo \"Health check attempt \$i failed. Retrying...\"
                   sleep 3
                 done
+
+                if [ \"\$HEALTHY\" = \"true\" ]; then
+                  echo \"Deployment completed successfully\"
+                  exit 0
+                fi
 
                 echo \"New deployment failed health verification\"
                 echo \"Rolling back to \$PREVIOUS_TAG...\"
@@ -242,18 +251,27 @@ jobs:
 
                 echo \"Checking application health after rollback...\"
 
+                ROLLBACK_HEALTHY=false
+
                 for i in {1..10}; do
                   if curl --fail --silent --show-error \
                     --max-time 5 \
                     https://api.aggelosgkiose.dev/health/ready; then
+
                     echo
                     echo \"Rollback successful. Previous version is healthy.\"
-                    exit 1
+                    ROLLBACK_HEALTHY=true
+                    break
                   fi
 
                   echo \"Rollback health check attempt \$i failed. Retrying...\"
                   sleep 3
                 done
+
+                if [ \"\$ROLLBACK_HEALTHY\" = \"true\" ]; then
+                  echo \"New deployment failed, but rollback succeeded\"
+                  exit 1
+                fi
 
                 echo \"CRITICAL: Rollback health verification also failed\"
                 exit 1
