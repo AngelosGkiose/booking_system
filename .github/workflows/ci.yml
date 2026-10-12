@@ -190,7 +190,6 @@ jobs:
 
       - name: Setup Google Cloud CLI
         uses: google-github-actions/setup-gcloud@v3
-
       - name: Deploy to server
         run: |
           gcloud compute ssh booking-server \
@@ -199,11 +198,64 @@ jobs:
             --tunnel-through-iap \
             --command="
               sudo -u aggelosgkiose bash -lc '
-                cd /opt/booking_system &&
-                git pull origin main &&
-                IMAGE_TAG=${{ github.sha }} docker compose -f compose.prod.yml pull &&
-                IMAGE_TAG=${{ github.sha }} docker compose -f compose.prod.yml up -d &&
-                docker exec booking_nginx nginx -t &&
+                set -e
+
+                cd /opt/booking_system
+
+                CURRENT_IMAGE=\$(docker inspect booking_api --format \"{{.Config.Image}}\")
+                PREVIOUS_TAG=\${CURRENT_IMAGE##*:}
+
+                echo \"Current production image: \$PREVIOUS_TAG\"
+                echo \"Deploying new image: ${{ github.sha }}\"
+
+                git pull origin main
+
+                IMAGE_TAG=${{ github.sha }} docker compose -f compose.prod.yml pull
+                IMAGE_TAG=${{ github.sha }} docker compose -f compose.prod.yml up -d
+
+                docker exec booking_nginx nginx -t
                 docker exec booking_nginx nginx -s reload
+
+                echo \"Checking application health...\"
+
+                for i in {1..10}; do
+                  if curl --fail --silent --show-error \
+                    --max-time 5 \
+                    https://api.aggelosgkiose.dev/health/ready; then
+                    echo
+                    echo \"Deployment health check passed\"
+                    exit 0
+                  fi
+
+                  echo \"Health check attempt \$i failed. Retrying...\"
+                  sleep 3
+                done
+
+                echo \"New deployment failed health verification\"
+                echo \"Rolling back to \$PREVIOUS_TAG...\"
+
+                IMAGE_TAG=\$PREVIOUS_TAG docker compose -f compose.prod.yml pull
+                IMAGE_TAG=\$PREVIOUS_TAG docker compose -f compose.prod.yml up -d
+
+                docker exec booking_nginx nginx -t
+                docker exec booking_nginx nginx -s reload
+
+                echo \"Checking application health after rollback...\"
+
+                for i in {1..10}; do
+                  if curl --fail --silent --show-error \
+                    --max-time 5 \
+                    https://api.aggelosgkiose.dev/health/ready; then
+                    echo
+                    echo \"Rollback successful. Previous version is healthy.\"
+                    exit 1
+                  fi
+
+                  echo \"Rollback health check attempt \$i failed. Retrying...\"
+                  sleep 3
+                done
+
+                echo \"CRITICAL: Rollback health verification also failed\"
+                exit 1
               '
             "
