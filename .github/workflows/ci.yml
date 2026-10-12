@@ -193,6 +193,7 @@ jobs:
       - name: Deploy to server
         run: |
           gcloud compute ssh booking-server \
+            --quiet \
             --project="project-30242ad4-f1de-40bb-9e1" \
             --zone="europe-west4-b" \
             --tunnel-through-iap \
@@ -276,4 +277,8 @@ jobs:
                 echo \"CRITICAL: Rollback health verification also failed\"
                 exit 1
               '
+
+              REMOTE_STATUS=\$?
+              echo \"Remote deploy exit code: \$REMOTE_STATUS\"
+              exit \$REMOTE_STATUS
             "
