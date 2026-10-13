@@ -190,32 +190,54 @@ jobs:
 
       - name: Setup Google Cloud CLI
         uses: google-github-actions/setup-gcloud@v3
-      - name: Diagnose SSH exit status
+      - name: Deploy to server
         run: |
-          set +e
-
-          echo "=== Test 1: Simple SSH command ==="
-
           gcloud compute ssh booking-server \
             --quiet \
             --project="project-30242ad4-f1de-40bb-9e1" \
             --zone="europe-west4-b" \
             --tunnel-through-iap \
-            --command="echo SSH_OK; exit 0"
+            --command="
+              exec sudo -u aggelosgkiose bash -lc '
+                set -e
 
-          SSH_STATUS=$?
-          echo "Simple SSH exit code: $SSH_STATUS"
+                cd /opt/booking_system
 
-          echo "=== Test 2: SSH with sudo and bash ==="
+                echo \"Deploying image: ${{ github.sha }}\"
 
-          gcloud compute ssh booking-server \
-            --quiet \
-            --project="project-30242ad4-f1de-40bb-9e1" \
-            --zone="europe-west4-b" \
-            --tunnel-through-iap \
-            --command="exec sudo -u aggelosgkiose bash -lc 'echo INNER_OK; exit 0'"
+                git pull origin main
 
-          SUDO_STATUS=$?
-          echo "SSH + sudo exit code: $SUDO_STATUS"
+                IMAGE_TAG=${{ github.sha }} docker compose -f compose.prod.yml pull
+                IMAGE_TAG=${{ github.sha }} docker compose -f compose.prod.yml up -d
 
-          exit 0
+                docker exec booking_nginx nginx -t
+                docker exec booking_nginx nginx -s reload
+
+                echo \"Checking application health...\"
+
+                HEALTHY=false
+
+                for i in {1..10}; do
+                  if curl --fail --silent --show-error \
+                    --max-time 5 \
+                    https://api.aggelosgkiose.dev/health/ready; then
+
+                    echo
+                    echo \"Deployment health check passed\"
+                    HEALTHY=true
+                    break
+                  fi
+
+                  echo \"Health check attempt \$i failed. Retrying...\"
+                  sleep 3
+                done
+
+                if [ \"\$HEALTHY\" = \"true\" ]; then
+                  echo \"Deployment completed successfully\"
+                  exit 0
+                fi
+
+                echo \"Deployment failed: application did not become healthy\"
+                exit 1
+              '
+            "
