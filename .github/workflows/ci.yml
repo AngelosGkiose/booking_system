@@ -198,7 +198,7 @@ jobs:
             --zone="europe-west4-b" \
             --tunnel-through-iap \
             --command="
-              exec sudo -u aggelosgkiose bash -lc '
+              sudo -u aggelosgkiose bash -lc '
                 set -e
 
                 cd /opt/booking_system
@@ -213,31 +213,27 @@ jobs:
                 docker exec booking_nginx nginx -t
                 docker exec booking_nginx nginx -s reload
 
-                echo \"Checking application health...\"
-
-                HEALTHY=false
-
-                for i in {1..10}; do
-                  if curl --fail --silent --show-error \
-                    --max-time 5 \
-                    https://api.aggelosgkiose.dev/health/ready; then
-
-                    echo
-                    echo \"Deployment health check passed\"
-                    HEALTHY=true
-                    break
-                  fi
-
-                  echo \"Health check attempt \$i failed. Retrying...\"
-                  sleep 3
-                done
-
-                if [ \"\$HEALTHY\" = \"true\" ]; then
-                  echo \"Deployment completed successfully\"
-                  exit 0
-                fi
-
-                echo \"Deployment failed: application did not become healthy\"
-                exit 1
+                echo \"Deployment commands completed\"
               '
             "
+
+      - name: Verify deployment health
+        run: |
+          echo "Checking production application health..."
+
+          for i in {1..10}; do
+            if curl --fail --silent --show-error \
+              --max-time 5 \
+              https://api.aggelosgkiose.dev/health/ready; then
+
+              echo
+              echo "Deployment health check passed"
+              exit 0
+            fi
+
+            echo "Health check attempt $i failed. Retrying..."
+            sleep 3
+          done
+
+          echo "Deployment failed: application did not become healthy"
+          exit 1
