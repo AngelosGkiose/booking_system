@@ -242,7 +242,7 @@ jobs:
           for i in {1..10}; do
             if curl --fail --silent --show-error \
               --max-time 5 \
-              https://api.aggelosgkiose.dev/health/this-does-not-exist; then
+              https://api.aggelosgkiose.dev/health/ready; then
 
               echo
               echo "Deployment health check passed"
