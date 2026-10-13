@@ -190,7 +190,24 @@ jobs:
 
       - name: Setup Google Cloud CLI
         uses: google-github-actions/setup-gcloud@v3
+
+      - name: Get current production image
+        id: previous_image
+        run: |
+          CURRENT_IMAGE=$(gcloud compute ssh booking-server \
+            --quiet \
+            --project="project-30242ad4-f1de-40bb-9e1" \
+            --zone="europe-west4-b" \
+            --tunnel-through-iap \
+            --command="sudo -u aggelosgkiose docker inspect booking_api --format '{{.Config.Image}}'")
+
+          PREVIOUS_TAG="${CURRENT_IMAGE##*:}"
+
+          echo "Current production image: $PREVIOUS_TAG"
+          echo "tag=$PREVIOUS_TAG" >> "$GITHUB_OUTPUT"
+
       - name: Deploy to server
+        id: deploy
         run: |
           gcloud compute ssh booking-server \
             --quiet \
@@ -218,13 +235,14 @@ jobs:
             "
 
       - name: Verify deployment health
+        id: health_check
         run: |
           echo "Checking production application health..."
 
           for i in {1..10}; do
             if curl --fail --silent --show-error \
               --max-time 5 \
-              https://api.aggelosgkiose.dev/health/ready; then
+              https://api.aggelosgkiose.dev/health/this-does-not-exist; then
 
               echo
               echo "Deployment health check passed"
@@ -236,4 +254,51 @@ jobs:
           done
 
           echo "Deployment failed: application did not become healthy"
+          exit 1
+
+
+      - name: Roll back deployment
+        if: failure() && steps.deploy.outcome == 'success' && steps.health_check.outcome == 'failure'
+        run: |
+          echo "Health verification failed."
+          echo "Rolling back to ${{ steps.previous_image.outputs.tag }}"
+
+          gcloud compute ssh booking-server \
+            --quiet \
+            --project="project-30242ad4-f1de-40bb-9e1" \
+            --zone="europe-west4-b" \
+            --tunnel-through-iap \
+            --command="
+              sudo -u aggelosgkiose bash -lc '
+                set -e
+
+                cd /opt/booking_system
+
+                IMAGE_TAG=${{ steps.previous_image.outputs.tag }} docker compose -f compose.prod.yml pull
+                IMAGE_TAG=${{ steps.previous_image.outputs.tag }} docker compose -f compose.prod.yml up -d
+
+                docker exec booking_nginx nginx -t
+                docker exec booking_nginx nginx -s reload
+
+                echo \"Previous image restored\"
+              '
+            "
+
+          echo "Checking application after rollback..."
+
+          for i in {1..10}; do
+            if curl --fail --silent --show-error \
+              --max-time 5 \
+              https://api.aggelosgkiose.dev/health/ready; then
+
+              echo
+              echo "Rollback successful. Previous version is healthy."
+              exit 0
+            fi
+
+            echo "Rollback health check attempt $i failed. Retrying..."
+            sleep 3
+          done
+
+          echo "CRITICAL: Rollback completed but application is still unhealthy"
           exit 1
