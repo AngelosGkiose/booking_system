@@ -232,6 +232,21 @@ jobs:
           echo "Current production image: $PREVIOUS_TAG"
           echo "tag=$PREVIOUS_TAG" >> "$GITHUB_OUTPUT"
 
+      - name: Get current production image
+        id: previous_image
+        run: |
+          CURRENT_IMAGE=$(gcloud compute ssh booking-server \
+            --quiet \
+            --project="project-30242ad4-f1de-40bb-9e1" \
+            --zone="europe-west4-b" \
+            --tunnel-through-iap \
+            --command="sudo -u aggelosgkiose docker inspect booking_api --format '{{.Config.Image}}'")
+
+          PREVIOUS_TAG="${CURRENT_IMAGE##*:}"
+
+          echo "Current production image: $PREVIOUS_TAG"
+          echo "tag=$PREVIOUS_TAG" >> "$GITHUB_OUTPUT"
+
 
       - name: Deploy to server
         id: deploy
