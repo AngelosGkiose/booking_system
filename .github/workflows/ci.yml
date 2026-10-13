@@ -233,6 +233,8 @@ jobs:
           echo "tag=$PREVIOUS_TAG" >> "$GITHUB_OUTPUT"
 
 
+      - name: Setup Google Cloud CLI
+        uses: google-github-actions/setup-gcloud@v3
       - name: Deploy to server
         id: deploy
         run: |
