@@ -83,12 +83,29 @@ The suite also covers reservation ownership, refresh-token rotation, transaction
 
 ## Docker and CI/CD
 
-Docker Compose defines PostgreSQL, Redis, the API, an Alembic migration service, and the background workers. The production configuration adds Nginx, which terminates HTTPS, redirects ordinary HTTP traffic to HTTPS, and proxies requests to FastAPI. Nginx uses Let's Encrypt certificates and exposes the ACME challenge path.
+Docker Compose runs PostgreSQL, Redis, the FastAPI application, Alembic migrations, and the background workers. The production configuration adds Nginx as the HTTPS reverse proxy, with Let's Encrypt certificates and an ACME challenge path.
 
-1. **Validate the change.** On pull requests and pushes to `main`, GitHub Actions runs Ruff, unit tests, and a test job backed by PostgreSQL and Redis. The latter applies Alembic migrations and enforces a **75% application coverage threshold**.
-2. **Build and publish.** The Docker image builds after the checks pass. A successful push to `main` publishes the image to GitHub Container Registry with commit SHA and `latest` tags. Deployment uses the SHA tag to select the exact build.
-3. **Deploy to Google Cloud.** GitHub Actions exchanges an OIDC token through **Workload Identity Federation** for short-lived Google Cloud credentials. It reaches the Compute Engine VM over SSH through an **Identity-Aware Proxy (IAP)** tunnel, then pulls and starts the image with Docker Compose, validates the Nginx configuration, and reloads Nginx.
-4. **Verify readiness and roll back.** The workflow captures the running image tag before deployment and probes `/health/ready` after rollout. If the deployment step succeeds but readiness verification fails, it reapplies the previous image tag.
+### Pull request and merge workflow
+
+1. **Push to a working branch and open a pull request into `main`.** GitHub Actions runs CI on the pull request. The workflow also runs when the pull request is updated with new commits.
+2. **Pass the required checks.** GitHub protects `main` with a pull request requirement and four required status checks. A failed check blocks the merge until the issue is fixed and the checks pass.
+3. **Merge into `main`.** The merge updates `main` and triggers a new workflow run on the commit that landed there. This run repeats the CI jobs before publishing the image or deploying to Google Cloud.
+
+### Continuous integration
+
+| Job | What it does |
+| --- | --- |
+| `linting-check` | Installs the backend dependencies on Python 3.14, runs `ruff check .`, and verifies formatting with `ruff format --check .`. |
+| `unit-tests` | Runs the isolated unit test suite with pytest. |
+| `integration-tests` | Starts dedicated PostgreSQL 17 and Redis 7 containers, waits for their health checks, applies Alembic migrations, and runs the full test suite with a **75% minimum coverage threshold** for the `app` package. |
+| `docker-build` | Waits for the other three jobs to pass, then builds the backend Docker image. Pull request runs stop after validation. On a successful `main` run, the job publishes the image to GitHub Container Registry (GHCR) with both the commit SHA and `latest` tags. |
+
+### Continuous deployment
+
+1. **Authenticate and connect.** The deployment job runs after `docker-build` succeeds on `main`. GitHub Actions uses an OIDC token and Google Cloud Workload Identity Federation to obtain short-lived credentials, then reaches the Compute Engine VM over SSH through an Identity-Aware Proxy (IAP) tunnel.
+2. **Deploy the exact build.** The workflow records the current API image tag for rollback. The VM pulls the latest `main` to update its deployment configuration, then pulls and starts the Docker image tagged with the triggering commit SHA. It validates the Nginx configuration before reloading Nginx.
+3. **Verify readiness.** The workflow probes the public HTTPS `/health/ready` endpoint up to ten times. The endpoint checks that the API can reach PostgreSQL and Redis.
+4. **Roll back if readiness fails.** If the deployment step completed but readiness verification failed, the workflow reapplies the previous image tag and checks readiness again. The failed rollout stays visible in GitHub Actions even if the rollback restores service.
 
 ## Local development
 
